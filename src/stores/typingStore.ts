@@ -63,8 +63,20 @@ export const useTypingStore = create<TypingState>((set, get) => ({
   maxCombo: 0,
 
   setMode: (mode) => {
-    set({ mode });
-    get().reset();
+    set({
+      mode,
+      chars: [],
+      currentIndex: 0,
+      currentInput: '',
+      isStarted: false,
+      isFinished: false,
+      startTime: null,
+      correctCount: 0,
+      wrongCount: 0,
+      totalKeystrokes: 0,
+      combo: 0,
+      maxCombo: 0,
+    });
   },
 
   loadChars: (pinyinChars) => {

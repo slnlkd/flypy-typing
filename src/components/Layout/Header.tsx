@@ -2,18 +2,17 @@ import { useTypingStore } from '../../stores/typingStore';
 import type { PracticeMode } from '../../stores/typingStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 
-export function Header() {
-  const { mode, setMode, loadRandomChars, loadArticle } = useTypingStore();
+export function Header({ onShowHistory }: { onShowHistory: () => void }) {
+  const { mode, setMode, loadRandomChars } = useTypingStore();
   const { darkMode, toggleDarkMode, showKeyboard, toggleKeyboard, showPinyin, togglePinyin } = useSettingsStore();
 
   const handleModeChange = (newMode: PracticeMode) => {
+    if (newMode === mode) return;
     setMode(newMode);
     if (newMode === 'char') {
       loadRandomChars();
-    } else {
-      // 文章模式会在组件内自动加载
-      loadArticle('');
     }
+    // 文章模式会在 ArticlePractice 组件内的 useEffect 自动加载
   };
 
   return (
@@ -47,6 +46,18 @@ export function Header() {
 
       {/* 设置按钮 */}
       <div className="flex items-center gap-2">
+        <button
+          onClick={onShowHistory}
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-sm transition-colors cursor-pointer"
+          style={{
+            backgroundColor: 'var(--bg-secondary)',
+            border: '1px solid var(--border)',
+            color: 'var(--text-secondary)',
+          }}
+          title="练习历史"
+        >
+          📊
+        </button>
         <ToggleButton
           label={showPinyin ? '拼' : '拼'}
           active={showPinyin}
