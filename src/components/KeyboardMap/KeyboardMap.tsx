@@ -8,49 +8,50 @@ export function KeyboardMap() {
 
   if (!showKeyboard) return null;
 
-  // 当前正在输入的字的双拼编码
   const currentChar = chars[currentIndex];
   const expectedCode = currentChar?.pinyinChar.flypyCode || '';
 
-  // 需要高亮的键
   const highlightedKeys = new Set<string>();
   if (highlightKeys && expectedCode) {
     if (currentInput.length === 0) {
-      // 提示第一个键
       highlightedKeys.add(expectedCode[0].toUpperCase());
     } else if (currentInput.length === 1 && expectedCode.length > 1) {
-      // 提示第二个键
       highlightedKeys.add(expectedCode[1].toUpperCase());
     }
   }
 
-  // 当前按下的键
   const pressedKey = currentInput.length > 0 ? currentInput[currentInput.length - 1].toUpperCase() : '';
 
   return (
-    <div className="w-full max-w-3xl mx-auto select-none">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
-          小鹤双拼键位图
-        </h3>
-        <div className="flex gap-3 text-xs" style={{ color: 'var(--text-muted)' }}>
-          <span className="flex items-center gap-1">
-            <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: '#ef4444' }} />
+    <div className="w-full max-w-4xl mx-auto select-none p-6 rounded-3xl" 
+         style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow)' }}>
+      <div className="flex items-center justify-between mb-6 px-2">
+        <div>
+          <h3 className="text-lg font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+            小鹤双拼
+          </h3>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>键盘布局参考</p>
+        </div>
+        <div className="flex gap-4 text-xs font-semibold">
+          <span className="flex items-center gap-2 px-2 py-1 rounded-md bg-red-50 dark:bg-red-900/10" style={{ color: 'var(--error)' }}>
+            <span className="w-1.5 h-1.5 rounded-full bg-current" />
             声母
           </span>
-          <span className="flex items-center gap-1">
-            <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: '#3b82f6' }} />
+          <span className="flex items-center gap-2 px-2 py-1 rounded-md bg-blue-50 dark:bg-blue-900/10" style={{ color: 'var(--accent)' }}>
+            <span className="w-1.5 h-1.5 rounded-full bg-current" />
             韵母
           </span>
         </div>
       </div>
 
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-2">
         {keyboardLayout.map((row, rowIdx) => (
           <div
             key={rowIdx}
-            className="flex gap-1 justify-center"
-            style={{ paddingLeft: rowIdx === 1 ? '20px' : rowIdx === 2 ? '50px' : '0' }}
+            className="flex gap-2 justify-center"
+            style={{ 
+              paddingLeft: rowIdx === 1 ? '24px' : rowIdx === 2 ? '52px' : '0',
+            }}
           >
             {row.map((keyInfo) => {
               const isHighlighted = highlightedKeys.has(keyInfo.key);
@@ -59,39 +60,49 @@ export function KeyboardMap() {
               return (
                 <div
                   key={keyInfo.key}
-                  className="flex flex-col items-center rounded-lg transition-all duration-100"
+                  className="relative flex flex-col items-center justify-between rounded-xl transition-all duration-75"
                   style={{
-                    width: '60px',
-                    minHeight: '56px',
-                    padding: '4px 2px',
+                    width: '64px',
+                    height: '68px',
+                    padding: '8px 4px',
                     backgroundColor: isPressed
                       ? 'var(--accent)'
                       : isHighlighted
-                        ? 'rgba(59, 130, 246, 0.15)'
-                        : 'var(--bg-card)',
-                    border: `1.5px solid ${isHighlighted ? 'var(--accent)' : 'var(--border)'}`,
+                        ? 'var(--accent-light)'
+                        : 'var(--bg-secondary)',
+                    border: `1px solid ${isPressed ? 'var(--accent-hover)' : isHighlighted ? 'var(--accent)' : 'var(--border)'}`,
                     color: isPressed ? '#ffffff' : 'var(--text-primary)',
-                    transform: isPressed ? 'scale(0.95)' : 'scale(1)',
-                    boxShadow: isHighlighted ? '0 0 8px rgba(59, 130, 246, 0.3)' : 'none',
+                    transform: isPressed ? 'translateY(2px) scale(0.98)' : 'translateY(0) scale(1)',
+                    boxShadow: isPressed 
+                      ? 'none' 
+                      : isHighlighted 
+                        ? '0 0 12px var(--accent-light)' 
+                        : '0 2px 0 var(--border)',
                   }}
                 >
-                  <span className="text-base font-bold leading-tight">{keyInfo.key}</span>
-                  <div className="flex flex-col items-center gap-0 mt-0.5">
+                  <span className="text-xl font-black leading-none self-start ml-1 opacity-90">{keyInfo.key}</span>
+                  
+                  <div className="flex flex-col items-end w-full pr-1">
                     {keyInfo.initial && (
                       <span
-                        className="text-[10px] font-medium leading-tight"
-                        style={{ color: isPressed ? '#fca5a5' : '#ef4444' }}
+                        className="text-[11px] font-bold leading-none mb-0.5"
+                        style={{ color: isPressed ? 'rgba(255,255,255,0.9)' : 'var(--error)' }}
                       >
                         {keyInfo.initial}
                       </span>
                     )}
                     <span
-                      className="text-[10px] font-medium leading-tight"
-                      style={{ color: isPressed ? '#93c5fd' : '#3b82f6' }}
+                      className="text-[10px] font-bold leading-none tracking-tighter overflow-hidden text-ellipsis whitespace-nowrap max-w-full"
+                      style={{ color: isPressed ? 'rgba(255,255,255,0.8)' : 'var(--accent)' }}
                     >
                       {keyInfo.finals.join(' ')}
                     </span>
                   </div>
+
+                  {/* 模拟按键深度效果 */}
+                  {!isPressed && (
+                    <div className="absolute inset-x-0 -bottom-[1px] h-1 bg-black/5 dark:bg-white/5 rounded-b-xl" />
+                  )}
                 </div>
               );
             })}
