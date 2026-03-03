@@ -201,19 +201,22 @@ export const useTypingStore = create<TypingState>((set, get) => ({
         combo: 0,
       });
 
-      // 短暂显示错误后清空输入
-      setTimeout(() => {
-        const s = get();
-        if (s.currentIndex === state.currentIndex && s.currentInput === newInput) {
-          const resetChars = [...s.chars];
-          resetChars[s.currentIndex] = {
-            ...resetChars[s.currentIndex],
-            status: 'current',
-            userInput: '',
-          };
-          set({ chars: resetChars, currentInput: '' });
-        }
-      }, 300);
+      // 单字模式下，短暂停留后自动重置输入；文章模式下，需要用户手动退格纠正
+      // 修改：只有在单字模式下才自动重置。文章模式下，错误状态将保持，直到用户退格。
+      if (state.mode === 'char') {
+        setTimeout(() => {
+          const s = get();
+          if (s.currentIndex === state.currentIndex && s.currentInput === newInput) {
+            const resetChars = [...s.chars];
+            resetChars[s.currentIndex] = {
+              ...resetChars[s.currentIndex],
+              status: 'current',
+              userInput: '',
+            };
+            set({ chars: resetChars, currentInput: '' });
+          }
+        }, 300);
+      }
     }
   },
 
