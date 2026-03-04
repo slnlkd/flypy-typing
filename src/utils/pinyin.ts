@@ -3,15 +3,20 @@ import { pinyinToFlypy } from '../data/flypy';
 
 export interface PinyinChar {
   char: string;
-  pinyin: string;       // 全拼（无声调）
+  pinyin: string; // 全拼（无声调）
   pinyinWithTone: string; // 带声调拼音
-  flypyCode: string;    // 小鹤双拼编码
+  flypyCode: string; // 小鹤双拼编码
   isChineseChar: boolean; // 是否为汉字
 }
 
 // 判断是否为汉字
 export function isChinese(char: string): boolean {
   return /[\u4e00-\u9fff]/.test(char);
+}
+
+// 判断是否为常见中英文标点
+export function isPunctuation(char: string): boolean {
+  return /[，。！？；：、“”‘’（）《》【】—…,.!?;:'"()<>[\]{}-]/.test(char);
 }
 
 // 获取单个汉字的拼音信息
@@ -39,14 +44,14 @@ export function getCharPinyin(char: string): PinyinChar {
   };
 }
 
-// 将文本转换为 PinyinChar 数组（仅保留汉字和标点）
+// 将文本转换为 PinyinChar 数组（保留汉字和标点）
 export function textToPinyinChars(text: string): PinyinChar[] {
   const chars: PinyinChar[] = [];
   for (const char of text) {
-    if (isChinese(char)) {
+    if (isChinese(char) || isPunctuation(char)) {
       chars.push(getCharPinyin(char));
     }
-    // 跳过非汉字字符（标点、空格等）
+    // 跳过其他字符（空格、换行等）
   }
   return chars;
 }

@@ -17,6 +17,7 @@ export function CharPractice() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) return;
       if (e.key === 'Backspace' || (e.key.length === 1 && /[a-zA-Z]/.test(e.key))) {
         e.preventDefault();
         handleKeyDown(e.key);

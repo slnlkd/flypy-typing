@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { PinyinChar } from '../utils/pinyin';
-import { textToPinyinChars, checkFlypyInput } from '../utils/pinyin';
+import { textToPinyinChars, checkFlypyInput, isPunctuation } from '../utils/pinyin';
 import { commonChars, pinyinToFlypy } from '../data/flypy';
 
 export type PracticeMode = 'char' | 'article';
@@ -39,6 +39,8 @@ interface TypingState {
   loadArticle: (text: string) => void;
   loadRandomChars: (count?: number) => void;
   handleKeyDown: (key: string) => void;
+  handleCharInput: (input: string) => void;
+  handleBackspace: () => void;
   reset: () => void;
 
   // 计算属性
@@ -220,6 +222,133 @@ export const useTypingStore = create<TypingState>((set, get) => ({
     }
   },
 
+  handleCharInput: (input: string) => {
+    const state = get();
+    if (state.isFinished || state.chars.length === 0 || input.length === 0) return;
+
+    const now = Date.now();
+
+    // 首次输入开始计时
+    if (!state.isStarted) {
+      set({ isStarted: true, startTime: now });
+    }
+
+    // 逐字匹配（支持词组输入）
+    const newChars = [...state.chars];
+    let idx = state.currentIndex;
+    let correct = state.correctCount;
+    let wrong = state.wrongCount;
+    let combo = state.combo;
+    let maxCombo = state.maxCombo;
+    let keystrokes = state.totalKeystrokes;
+
+    const autoSkipPunctuation = () => {
+      while (idx < newChars.length && isPunctuation(newChars[idx].pinyinChar.char)) {
+        const punctuationChar = newChars[idx];
+        newChars[idx] = {
+          ...punctuationChar,
+          status: 'correct',
+          userInput: punctuationChar.pinyinChar.char,
+          startTime: punctuationChar.startTime || now,
+          endTime: now,
+        };
+        idx++;
+      }
+    };
+
+    // 先跳过当前索引处连续标点
+    autoSkipPunctuation();
+
+    for (const ch of input) {
+      if (idx >= newChars.length) break;
+
+      const currentChar = newChars[idx];
+      const expected = currentChar.pinyinChar.char;
+      keystrokes++;
+
+      if (ch === expected) {
+        newChars[idx] = {
+          ...currentChar,
+          status: 'correct',
+          userInput: ch,
+          startTime: currentChar.startTime || now,
+          endTime: now,
+        };
+        correct++;
+        combo++;
+        maxCombo = Math.max(maxCombo, combo);
+      } else {
+        newChars[idx] = {
+          ...currentChar,
+          status: 'wrong',
+          userInput: ch,
+          startTime: currentChar.startTime || now,
+          endTime: now,
+        };
+        wrong++;
+        combo = 0;
+      }
+
+      idx++;
+      autoSkipPunctuation();
+    }
+
+    // 设置下一个为 current，或结束
+    if (idx < newChars.length) {
+      newChars[idx] = { ...newChars[idx], status: 'current' };
+      set({
+        chars: newChars,
+        currentIndex: idx,
+        currentInput: '',
+        correctCount: correct,
+        wrongCount: wrong,
+        totalKeystrokes: keystrokes,
+        combo,
+        maxCombo,
+      });
+    } else {
+      set({
+        chars: newChars,
+        currentIndex: idx,
+        currentInput: '',
+        isFinished: true,
+        correctCount: correct,
+        wrongCount: wrong,
+        totalKeystrokes: keystrokes,
+        combo,
+        maxCombo,
+      });
+    }
+  },
+
+  handleBackspace: () => {
+    const state = get();
+    if (state.currentIndex === 0 || state.chars.length === 0) return;
+
+    const prevIndex = state.currentIndex - 1;
+    const prevChar = state.chars[prevIndex];
+    const newChars = [...state.chars];
+
+    // 还原统计
+    let correct = state.correctCount;
+    let wrong = state.wrongCount;
+    if (prevChar.status === 'correct') correct--;
+    if (prevChar.status === 'wrong') wrong--;
+
+    // 把当前字重置为 pending，前一个字重置为 current
+    newChars[state.currentIndex] = { ...newChars[state.currentIndex], status: 'pending', userInput: '' };
+    newChars[prevIndex] = { ...prevChar, status: 'current', userInput: '' };
+
+    set({
+      chars: newChars,
+      currentIndex: prevIndex,
+      currentInput: '',
+      correctCount: correct,
+      wrongCount: wrong,
+      isFinished: false,
+    });
+  },
+
   reset: () => {
     const state = get();
     if (state.mode === 'char') {
@@ -254,3 +383,6 @@ export const useTypingStore = create<TypingState>((set, get) => ({
     return Math.round((state.currentIndex / state.chars.length) * 100);
   },
 }));
+
+
+

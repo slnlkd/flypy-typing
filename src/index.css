@@ -10,6 +10,8 @@
   --border: #e2e8f0;
   --accent: #3b82f6;
   --accent-hover: #2563eb;
+  --accent-light: rgba(59, 130, 246, 0.08);
+  --accent-light-hover: rgba(59, 130, 246, 0.14);
   --success: #22c55e;
   --error: #ef4444;
   --warning: #f59e0b;
@@ -25,6 +27,8 @@
   --border: #334155;
   --accent: #60a5fa;
   --accent-hover: #3b82f6;
+  --accent-light: rgba(96, 165, 250, 0.10);
+  --accent-light-hover: rgba(96, 165, 250, 0.18);
   --success: #4ade80;
   --error: #f87171;
   --warning: #fbbf24;
@@ -47,3 +51,118 @@ body {
 #root {
   min-height: 100vh;
 }
+
+/* ── Button System ── */
+
+/* Preset article chip — low-key, recedes into background */
+.btn-chip {
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.btn-chip:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+.btn-chip:active {
+  transform: scale(0.97);
+}
+
+/* Primary CTA — filled accent, prominent */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  white-space: nowrap;
+}
+.btn-primary:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 4px 12px rgba(59,130,246,0.25);
+}
+.btn-primary:active {
+  transform: scale(0.96);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+}
+
+/* Secondary — outlined, lighter presence */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--accent);
+  background: var(--accent-light);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.btn-secondary:hover {
+  background: var(--accent-light-hover);
+  border-color: var(--accent);
+}
+.btn-secondary:active {
+  transform: scale(0.97);
+}
+
+/* Ghost — text-only, minimal footprint */
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn-ghost:hover {
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+}
+/* ── Custom Scrollbar ── */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+

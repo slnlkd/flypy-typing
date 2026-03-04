@@ -8,15 +8,24 @@ export function KeyboardMap() {
 
   if (!showKeyboard) return null;
 
+  const { mode } = useTypingStore();
   const currentChar = chars[currentIndex];
   const expectedCode = currentChar?.pinyinChar.flypyCode || '';
 
   const highlightedKeys = new Set<string>();
   if (highlightKeys && expectedCode) {
-    if (currentInput.length === 0) {
-      highlightedKeys.add(expectedCode[0].toUpperCase());
-    } else if (currentInput.length === 1 && expectedCode.length > 1) {
-      highlightedKeys.add(expectedCode[1].toUpperCase());
+    if (mode === 'article') {
+      // 文章模式：同时高亮两个编码键
+      for (const ch of expectedCode) {
+        highlightedKeys.add(ch.toUpperCase());
+      }
+    } else {
+      // 单字模式：逐键高亮
+      if (currentInput.length === 0) {
+        highlightedKeys.add(expectedCode[0].toUpperCase());
+      } else if (currentInput.length === 1 && expectedCode.length > 1) {
+        highlightedKeys.add(expectedCode[1].toUpperCase());
+      }
     }
   }
 
@@ -68,15 +77,15 @@ export function KeyboardMap() {
                     backgroundColor: isPressed
                       ? 'var(--accent)'
                       : isHighlighted
-                        ? 'var(--accent-light)'
+                        ? 'color-mix(in srgb, var(--accent) 18%, var(--bg-secondary))'
                         : 'var(--bg-secondary)',
-                    border: `1px solid ${isPressed ? 'var(--accent-hover)' : isHighlighted ? 'var(--accent)' : 'var(--border)'}`,
-                    color: isPressed ? '#ffffff' : 'var(--text-primary)',
-                    transform: isPressed ? 'translateY(2px) scale(0.98)' : 'translateY(0) scale(1)',
-                    boxShadow: isPressed 
-                      ? 'none' 
-                      : isHighlighted 
-                        ? '0 0 12px var(--accent-light)' 
+                    border: `2px solid ${isPressed ? 'var(--accent-hover)' : isHighlighted ? 'var(--accent)' : 'var(--border)'}`,
+                    color: isPressed ? '#ffffff' : isHighlighted ? 'var(--accent)' : 'var(--text-primary)',
+                    transform: isPressed ? 'translateY(2px) scale(0.98)' : isHighlighted ? 'translateY(-1px) scale(1.03)' : 'translateY(0) scale(1)',
+                    boxShadow: isPressed
+                      ? 'none'
+                      : isHighlighted
+                        ? '0 4px 16px color-mix(in srgb, var(--accent) 30%, transparent)'
                         : '0 2px 0 var(--border)',
                   }}
                 >

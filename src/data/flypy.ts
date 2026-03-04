@@ -402,9 +402,5 @@ export const presetArticles = [
   {
     title: '静夜思 - 李白',
     content: '床前明月光，疑是地上霜。举头望明月，低头思故乡。',
-  },
-  {
-    title: '春晓 - 孟浩然',
-    content: '春眠不觉晓，处处闻啼鸟。夜来风雨声，花落知多少。',
-  },
-];
+  }];
+
