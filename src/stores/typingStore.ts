@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import type { PinyinChar } from '../utils/pinyin';
 import { textToPinyinChars, checkFlypyInput, isPunctuation } from '../utils/pinyin';
 import { commonChars, pinyinToFlypy } from '../data/flypy';
+import { useSettingsStore } from './settingsStore';
+import { playKeySound, playCorrectSound, playErrorSound, playComboSound } from '../utils/sound';
 
 export type PracticeMode = 'char' | 'article';
 export type CharStatus = 'pending' | 'current' | 'correct' | 'wrong';
@@ -14,12 +16,42 @@ export interface TypedChar {
   endTime?: number;
 }
 
+// 韵母需要转换的拼音（非直接映射）
+const hardFinals = new Set([
+  'iu', 'ei', 'uan', 'er', 'ue', 've', 'un', 'uo',
+  'ie', 'ong', 'iong', 'ai', 'uai', 'en', 'eng', 'ang',
+  'an', 'ing', 'iang', 'uang', 'ou', 'ia', 'ua', 'ao',
+  'ui', 'in', 'iao', 'ian',
+]);
+
+function isHardChar(pinyin: string): boolean {
+  // 声母需转换：zh, ch, sh
+  if (pinyin.startsWith('zh') || pinyin.startsWith('ch') || pinyin.startsWith('sh')) return true;
+  // 韵母需转换
+  const code = pinyinToFlypy[pinyin];
+  if (!code || code.length < 2) return false;
+  // 韵母键 != 韵母首字母
+  const finalKey = code[1];
+  const pinyinNoInitial = pinyin.replace(/^[bpmfdtnlgkhjqxrzcsyw]h?/, '');
+  return pinyinNoInitial.length > 0 && finalKey !== pinyinNoInitial[0];
+}
+
+// 声母列表
+const initials = ['b','p','m','f','d','t','n','l','g','k','h','j','q','x','zh','ch','sh','r','z','c','s','y','w'];
+
+function getInitial(pinyin: string): string {
+  for (const ini of ['zh','ch','sh']) {
+    if (pinyin.startsWith(ini)) return ini;
+  }
+  const first = pinyin[0];
+  if (initials.includes(first)) return first;
+  return '';
+}
+
 interface TypingState {
-  // 练习模式
   mode: PracticeMode;
   setMode: (mode: PracticeMode) => void;
 
-  // 练习数据
   chars: TypedChar[];
   currentIndex: number;
   currentInput: string;
@@ -27,14 +59,16 @@ interface TypingState {
   isFinished: boolean;
   startTime: number | null;
 
-  // 统计
+  // 限时模式
+  timerEndTime: number | null;
+  isTimerExpired: boolean;
+
   correctCount: number;
   wrongCount: number;
   totalKeystrokes: number;
   combo: number;
   maxCombo: number;
 
-  // 操作
   loadChars: (pinyinChars: PinyinChar[]) => void;
   loadArticle: (text: string) => void;
   loadRandomChars: (count?: number) => void;
@@ -42,12 +76,13 @@ interface TypingState {
   handleCharInput: (input: string) => void;
   handleBackspace: () => void;
   reset: () => void;
+  checkTimer: () => void;
 
-  // 计算属性
   getSpeed: () => number;
   getAccuracy: () => number;
   getElapsedTime: () => number;
   getProgress: () => number;
+  getRemainingTime: () => number | null;
 }
 
 export const useTypingStore = create<TypingState>((set, get) => ({
@@ -58,6 +93,8 @@ export const useTypingStore = create<TypingState>((set, get) => ({
   isStarted: false,
   isFinished: false,
   startTime: null,
+  timerEndTime: null,
+  isTimerExpired: false,
   correctCount: 0,
   wrongCount: 0,
   totalKeystrokes: 0,
@@ -73,6 +110,8 @@ export const useTypingStore = create<TypingState>((set, get) => ({
       isStarted: false,
       isFinished: false,
       startTime: null,
+      timerEndTime: null,
+      isTimerExpired: false,
       correctCount: 0,
       wrongCount: 0,
       totalKeystrokes: 0,
@@ -94,6 +133,8 @@ export const useTypingStore = create<TypingState>((set, get) => ({
       isStarted: false,
       isFinished: false,
       startTime: null,
+      timerEndTime: null,
+      isTimerExpired: false,
       correctCount: 0,
       wrongCount: 0,
       totalKeystrokes: 0,
@@ -107,24 +148,67 @@ export const useTypingStore = create<TypingState>((set, get) => ({
     get().loadChars(pinyinChars);
   },
 
-  loadRandomChars: (count = 50) => {
-    const shuffled = [...commonChars].sort(() => Math.random() - 0.5);
-    const selected = shuffled.slice(0, count);
+  loadRandomChars: (countOverride?: number) => {
+    const settings = useSettingsStore.getState();
+    const count = countOverride || settings.charCount;
+    const poolSize = settings.charPool;
+    const practiceType = settings.practiceType;
+
+    // 获取字库范围
+    let pool = commonChars.slice(0, Math.min(poolSize, commonChars.length));
+
+    // 根据出题模式过滤
+    if (practiceType === 'hard') {
+      pool = pool.filter((c) => isHardChar(c.pinyin));
+    } else if (practiceType === 'initial') {
+      // 声母专项：只选有特殊声母映射的字（zh, ch, sh）
+      pool = pool.filter((c) => {
+        const ini = getInitial(c.pinyin);
+        return ini === 'zh' || ini === 'ch' || ini === 'sh';
+      });
+    } else if (practiceType === 'final') {
+      // 韵母专项：只选韵母需要转换的字
+      pool = pool.filter((c) => {
+        const code = pinyinToFlypy[c.pinyin];
+        if (!code || code.length < 2) return false;
+        const pinyinNoInitial = c.pinyin.replace(/^[bpmfdtnlgkhjqxrzcsyw]h?/, '');
+        return hardFinals.has(pinyinNoInitial);
+      });
+    }
+
+    if (pool.length === 0) pool = commonChars.slice(0, 500);
+
+    let selected;
+    if (practiceType === 'sequential') {
+      selected = pool.slice(0, count);
+    } else {
+      const shuffled = [...pool].sort(() => Math.random() - 0.5);
+      selected = shuffled.slice(0, Math.min(count, shuffled.length));
+    }
+
     const pinyinChars: PinyinChar[] = selected.map((c) => ({
       char: c.char,
       pinyin: c.pinyin,
-      pinyinWithTone: c.pinyin, // 简化处理
+      pinyinWithTone: c.pinyin,
       flypyCode: pinyinToFlypy[c.pinyin] || c.pinyin,
       isChineseChar: true,
     }));
     get().loadChars(pinyinChars);
   },
 
+  checkTimer: () => {
+    const state = get();
+    if (state.timerEndTime && Date.now() >= state.timerEndTime && !state.isFinished) {
+      set({ isFinished: true, isTimerExpired: true });
+    }
+  },
+
   handleKeyDown: (key) => {
     const state = get();
     if (state.isFinished || state.chars.length === 0) return;
 
-    // 只处理字母键和退格键
+    const settings = useSettingsStore.getState();
+
     if (key === 'Backspace') {
       if (state.currentInput.length > 0) {
         set({ currentInput: state.currentInput.slice(0, -1) });
@@ -132,15 +216,24 @@ export const useTypingStore = create<TypingState>((set, get) => ({
       return;
     }
 
-    // 只接受字母输入
     if (!/^[a-zA-Z]$/.test(key)) return;
 
     const now = Date.now();
 
-    // 首次输入开始计时
     if (!state.isStarted) {
-      set({ isStarted: true, startTime: now });
+      const timerEndTime = settings.timerMode !== 'none'
+        ? now + (settings.timerMode as number) * 1000
+        : null;
+      set({ isStarted: true, startTime: now, timerEndTime });
     }
+
+    // 检查计时器
+    if (state.timerEndTime && now >= state.timerEndTime) {
+      set({ isFinished: true, isTimerExpired: true });
+      return;
+    }
+
+    if (settings.soundEnabled) playKeySound();
 
     const newInput = state.currentInput + key.toLowerCase();
     const currentChar = state.chars[state.currentIndex];
@@ -151,7 +244,6 @@ export const useTypingStore = create<TypingState>((set, get) => ({
     const result = checkFlypyInput(newInput, expectedCode);
 
     if (result === 'correct') {
-      // 正确完成当前字
       const newChars = [...state.chars];
       newChars[state.currentIndex] = {
         ...currentChar,
@@ -162,8 +254,16 @@ export const useTypingStore = create<TypingState>((set, get) => ({
       };
 
       const newCombo = state.combo + 1;
-      const nextIndex = state.currentIndex + 1;
 
+      if (settings.soundEnabled) {
+        if (newCombo >= 5) {
+          playComboSound(newCombo);
+        } else {
+          playCorrectSound();
+        }
+      }
+
+      const nextIndex = state.currentIndex + 1;
       if (nextIndex < newChars.length) {
         newChars[nextIndex] = { ...newChars[nextIndex], status: 'current' };
         set({
@@ -175,7 +275,6 @@ export const useTypingStore = create<TypingState>((set, get) => ({
           maxCombo: Math.max(state.maxCombo, newCombo),
         });
       } else {
-        // 练习完成
         set({
           chars: newChars,
           currentInput: '',
@@ -186,10 +285,10 @@ export const useTypingStore = create<TypingState>((set, get) => ({
         });
       }
     } else if (result === 'partial') {
-      // 部分输入正确，继续输入
       set({ currentInput: newInput });
     } else {
-      // 输入错误
+      if (settings.soundEnabled) playErrorSound();
+
       const newChars = [...state.chars];
       newChars[state.currentIndex] = {
         ...currentChar,
@@ -203,8 +302,6 @@ export const useTypingStore = create<TypingState>((set, get) => ({
         combo: 0,
       });
 
-      // 单字模式下，短暂停留后自动重置输入；文章模式下，需要用户手动退格纠正
-      // 修改：只有在单字模式下才自动重置。文章模式下，错误状态将保持，直到用户退格。
       if (state.mode === 'char') {
         setTimeout(() => {
           const s = get();
@@ -226,14 +323,21 @@ export const useTypingStore = create<TypingState>((set, get) => ({
     const state = get();
     if (state.isFinished || state.chars.length === 0 || input.length === 0) return;
 
+    const settings = useSettingsStore.getState();
     const now = Date.now();
 
-    // 首次输入开始计时
     if (!state.isStarted) {
-      set({ isStarted: true, startTime: now });
+      const timerEndTime = settings.timerMode !== 'none'
+        ? now + (settings.timerMode as number) * 1000
+        : null;
+      set({ isStarted: true, startTime: now, timerEndTime });
     }
 
-    // 逐字匹配（支持词组输入）
+    if (state.timerEndTime && now >= state.timerEndTime) {
+      set({ isFinished: true, isTimerExpired: true });
+      return;
+    }
+
     const newChars = [...state.chars];
     let idx = state.currentIndex;
     let correct = state.correctCount;
@@ -256,7 +360,6 @@ export const useTypingStore = create<TypingState>((set, get) => ({
       }
     };
 
-    // 先跳过当前索引处连续标点
     autoSkipPunctuation();
 
     for (const ch of input) {
@@ -277,6 +380,9 @@ export const useTypingStore = create<TypingState>((set, get) => ({
         correct++;
         combo++;
         maxCombo = Math.max(maxCombo, combo);
+        if (settings.soundEnabled) {
+          combo >= 5 ? playComboSound(combo) : playCorrectSound();
+        }
       } else {
         newChars[idx] = {
           ...currentChar,
@@ -287,13 +393,13 @@ export const useTypingStore = create<TypingState>((set, get) => ({
         };
         wrong++;
         combo = 0;
+        if (settings.soundEnabled) playErrorSound();
       }
 
       idx++;
       autoSkipPunctuation();
     }
 
-    // 设置下一个为 current，或结束
     if (idx < newChars.length) {
       newChars[idx] = { ...newChars[idx], status: 'current' };
       set({
@@ -329,13 +435,11 @@ export const useTypingStore = create<TypingState>((set, get) => ({
     const prevChar = state.chars[prevIndex];
     const newChars = [...state.chars];
 
-    // 还原统计
     let correct = state.correctCount;
     let wrong = state.wrongCount;
     if (prevChar.status === 'correct') correct--;
     if (prevChar.status === 'wrong') wrong--;
 
-    // 把当前字重置为 pending，前一个字重置为 current
     newChars[state.currentIndex] = { ...newChars[state.currentIndex], status: 'pending', userInput: '' };
     newChars[prevIndex] = { ...prevChar, status: 'current', userInput: '' };
 
@@ -359,7 +463,7 @@ export const useTypingStore = create<TypingState>((set, get) => ({
   getSpeed: () => {
     const state = get();
     if (!state.startTime || state.correctCount === 0) return 0;
-    const elapsed = (Date.now() - state.startTime) / 1000 / 60; // 分钟
+    const elapsed = (Date.now() - state.startTime) / 1000 / 60;
     if (elapsed === 0) return 0;
     return Math.round(state.correctCount / elapsed);
   },
@@ -382,7 +486,11 @@ export const useTypingStore = create<TypingState>((set, get) => ({
     if (state.chars.length === 0) return 0;
     return Math.round((state.currentIndex / state.chars.length) * 100);
   },
+
+  getRemainingTime: () => {
+    const state = get();
+    if (!state.timerEndTime) return null;
+    const remaining = Math.max(0, Math.ceil((state.timerEndTime - Date.now()) / 1000));
+    return remaining;
+  },
 }));
-
-
-

@@ -2,19 +2,22 @@ import { useEffect, useState } from 'react';
 import { useTypingStore } from '../../stores/typingStore';
 
 export function StatsBar() {
-  const { isStarted, isFinished, correctCount, wrongCount, combo, maxCombo, getSpeed, getAccuracy, getElapsedTime } = useTypingStore();
+  const { isStarted, isFinished, correctCount, wrongCount, combo, maxCombo, getSpeed, getAccuracy, getElapsedTime, getRemainingTime, checkTimer } = useTypingStore();
   const [, forceUpdate] = useState(0);
 
-  // 实时更新速度和时间
   useEffect(() => {
     if (!isStarted || isFinished) return;
-    const timer = setInterval(() => forceUpdate((n) => n + 1), 1000);
+    const timer = setInterval(() => {
+      checkTimer();
+      forceUpdate((n) => n + 1);
+    }, 1000);
     return () => clearInterval(timer);
-  }, [isStarted, isFinished]);
+  }, [isStarted, isFinished, checkTimer]);
 
   const speed = getSpeed();
   const accuracy = getAccuracy();
   const elapsed = getElapsedTime();
+  const remaining = getRemainingTime();
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -33,7 +36,15 @@ export function StatsBar() {
       <Divider />
       <StatItem label="连击" value={`${combo}`} highlight={combo >= 10} />
       <Divider />
-      <StatItem label="用时" value={formatTime(elapsed)} />
+      {remaining !== null ? (
+        <StatItem
+          label="剩余"
+          value={formatTime(remaining)}
+          color={remaining <= 10 ? 'var(--error)' : 'var(--warning)'}
+        />
+      ) : (
+        <StatItem label="用时" value={formatTime(elapsed)} />
+      )}
       <Divider />
       <StatItem label="正确" value={`${correctCount}`} color="var(--success)" />
       <StatItem label="错误" value={`${wrongCount}`} color="var(--error)" />
