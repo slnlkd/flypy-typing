@@ -36,7 +36,7 @@
 
 * {
   margin: 0;
-  padding: 1;
+  padding: 1px;
   box-sizing: border-box;
 }
 
@@ -165,4 +165,3 @@ body {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
 }
-
