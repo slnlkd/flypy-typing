@@ -2,17 +2,17 @@ import { useEffect, useState } from 'react';
 import { useTypingStore } from '../../stores/typingStore';
 
 export function StatsBar() {
-  const { isStarted, isFinished, correctCount, wrongCount, combo, maxCombo, getSpeed, getAccuracy, getElapsedTime, getRemainingTime, checkTimer } = useTypingStore();
+  const { isStarted, isFinished, isPaused, correctCount, wrongCount, combo, maxCombo, getSpeed, getAccuracy, getElapsedTime, getRemainingTime, checkTimer, togglePause } = useTypingStore();
   const [, forceUpdate] = useState(0);
 
   useEffect(() => {
-    if (!isStarted || isFinished) return;
+    if (!isStarted || isFinished || isPaused) return;
     const timer = setInterval(() => {
       checkTimer();
       forceUpdate((n) => n + 1);
     }, 1000);
     return () => clearInterval(timer);
-  }, [isStarted, isFinished, checkTimer]);
+  }, [isStarted, isFinished, isPaused, checkTimer]);
 
   const speed = getSpeed();
   const accuracy = getAccuracy();
@@ -54,6 +54,23 @@ export function StatsBar() {
           <StatItem label="最大连击" value={`${maxCombo}`} color="var(--warning)" />
         </>
       )}
+      {isStarted && !isFinished && (
+        <>
+          <Divider />
+          <button
+            onClick={togglePause}
+            className="px-3 py-1 text-xs font-bold rounded-lg cursor-pointer transition-all"
+            style={{
+              backgroundColor: isPaused ? 'var(--accent)' : 'var(--bg-primary)',
+              color: isPaused ? '#fff' : 'var(--text-secondary)',
+              border: `1px solid ${isPaused ? 'var(--accent)' : 'var(--border)'}`,
+            }}
+            aria-label={isPaused ? '继续练习' : '暂停练习'}
+          >
+            {isPaused ? '继续' : '暂停'}
+          </button>
+        </>
+      )}
     </div>
   );
 }
@@ -83,5 +100,5 @@ function StatItem({ label, value, unit, color, highlight }: {
 }
 
 function Divider() {
-  return <span style={{ color: 'var(--border)' }}>|</span>;
+  return <span style={{ color: 'var(--border)' }} aria-hidden="true">|</span>;
 }

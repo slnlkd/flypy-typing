@@ -32,7 +32,9 @@ export function KeyboardMap() {
   const pressedKey = currentInput.length > 0 ? currentInput[currentInput.length - 1].toUpperCase() : '';
 
   return (
-    <div className="w-full max-w-4xl mx-auto select-none p-6 rounded-3xl" 
+    <div className="w-full max-w-4xl mx-auto select-none p-6 rounded-3xl"
+         role="img"
+         aria-label="小鹤双拼键盘布局参考"
          style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow)' }}>
       <div className="flex items-center justify-between mb-6 px-2">
         <div>

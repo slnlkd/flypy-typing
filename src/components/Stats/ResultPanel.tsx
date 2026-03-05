@@ -65,6 +65,9 @@ export function ResultPanel() {
       <div
         className="rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl animate-in zoom-in-95 duration-300"
         style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+        role="dialog"
+        aria-modal="true"
+        aria-label="练习结果"
       >
         <h2 className="text-2xl font-bold text-center mb-2" style={{ color: 'var(--text-primary)' }}>
           练习完成！

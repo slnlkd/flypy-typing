@@ -3,23 +3,44 @@ import { useHistoryStore } from '../../stores/historyStore';
 import { useTypingStore } from '../../stores/typingStore';
 import { pinyinToFlypy } from '../../data/flypy';
 import type { PracticeRecord, WrongCharRecord } from '../../stores/historyStore';
+import { ConfirmDialog } from '../common/ConfirmDialog';
+
+type ModeFilter = 'all' | 'char' | 'article';
 
 export function HistoryPanel({ onClose }: { onClose: () => void }) {
   const { records, getTopWrongChars, clearHistory } = useHistoryStore();
   const { loadChars, setMode } = useTypingStore();
   const [tab, setTab] = useState<'records' | 'wrong' | 'trend'>('records');
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [modeFilter, setModeFilter] = useState<ModeFilter>('all');
 
-  const recentRecords = useMemo(() => records.slice(0, 50), [records]);
-  const topWrongChars = useMemo(() => getTopWrongChars(20), [getTopWrongChars]);
+  const filteredRecords = useMemo(() => {
+    const filtered = modeFilter === 'all' ? records : records.filter((r) => r.mode === modeFilter);
+    return filtered.slice(0, 50);
+  }, [records, modeFilter]);
+
+  const topWrongChars = useMemo(() => getTopWrongChars(30), [getTopWrongChars]);
 
   const stats = useMemo(() => {
     const last10 = records.slice(0, 10);
     const count = last10.length || 1;
+
+    // Today's stats
+    const today = new Date().toDateString();
+    const todayRecords = records.filter((r) => new Date(r.date).toDateString() === today);
+    const todayChars = todayRecords.reduce((sum, r) => sum + r.totalChars, 0);
+    const avgDuration = records.length > 0
+      ? Math.round(records.slice(0, 10).reduce((sum, r) => sum + r.duration, 0) / count)
+      : 0;
+
     return {
       total: records.length,
       avgSpeed: Math.round(last10.reduce((sum, r) => sum + r.speed, 0) / count),
       avgAccuracy: Math.round(last10.reduce((sum, r) => sum + r.accuracy, 0) / count),
       bestSpeed: records.length > 0 ? Math.max(...records.map((r) => r.speed)) : 0,
+      todayCount: todayRecords.length,
+      todayChars,
+      avgDuration,
     };
   }, [records]);
 
@@ -40,7 +61,7 @@ export function HistoryPanel({ onClose }: { onClose: () => void }) {
 
   const handlePracticeWrongChars = () => {
     if (topWrongChars.length === 0) return;
-    const pinyinChars = topWrongChars.map((wc) => ({
+    const pinyinChars = topWrongChars.slice(0, 20).map((wc) => ({
       char: wc.char,
       pinyin: wc.pinyin,
       pinyinWithTone: wc.pinyin,
@@ -52,15 +73,26 @@ export function HistoryPanel({ onClose }: { onClose: () => void }) {
     onClose();
   };
 
+  // Group wrong chars by frequency
+  const wrongCharGroups = useMemo(() => {
+    const high = topWrongChars.filter((wc) => wc.count >= 5);
+    const mid = topWrongChars.filter((wc) => wc.count >= 2 && wc.count < 5);
+    const low = topWrongChars.filter((wc) => wc.count === 1);
+    return { high, mid, low };
+  }, [topWrongChars]);
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-300"
-      style={{ backgroundColor: 'rgba(2, 6, 23, 0.75)', backdropFilter: 'blur(20px)' }}
+      style={{ backgroundColor: 'rgba(2, 6, 23, 0.5)', backdropFilter: 'blur(8px)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
         className="w-full max-w-4xl max-h-[92vh] overflow-hidden rounded-[3rem] flex flex-col shadow-[0_64px_128px_-12px_rgba(0,0,0,0.7)] animate-in zoom-in-95 slide-in-from-bottom-8 duration-500"
         style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+        role="dialog"
+        aria-modal="true"
+        aria-label="练习历史"
       >
         {/* Header */}
         <div className="px-8 sm:px-10 pt-6 pb-4 flex items-start justify-between gap-3">
@@ -72,7 +104,7 @@ export function HistoryPanel({ onClose }: { onClose: () => void }) {
                 Total Sessions: {stats.total}
               </span>
               <span className="opacity-30">/</span>
-              <span>Version 2.2</span>
+              <span>Version 2.3</span>
             </div>
           </div>
           <button
@@ -84,16 +116,18 @@ export function HistoryPanel({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Stats Grid */}
-        <div className="px-8 sm:px-10 pb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatHeroItem label="累计练习" value={stats.total} unit="次" color="var(--accent)" />
+        <div className="px-8 sm:px-10 pb-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <StatHeroItem label="今日练习" value={stats.todayCount} unit="次" color="var(--accent)" />
+          <StatHeroItem label="今日字数" value={stats.todayChars} unit="字" color="var(--accent)" />
           <StatHeroItem label="平均速度" value={stats.avgSpeed} unit="wpm" color="var(--text-primary)" />
           <StatHeroItem label="最高纪录" value={stats.bestSpeed} unit="wpm" color="var(--warning)" />
           <StatHeroItem label="平均准确率" value={stats.avgAccuracy} unit="%" color="var(--success)" />
+          <StatHeroItem label="平均用时" value={formatDuration(stats.avgDuration)} unit="" color="var(--text-secondary)" />
         </div>
 
         {/* Tabs & Actions */}
         <div className="px-8 sm:px-10 pb-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-0 justify-between border-b border-[var(--border)]/30">
-          <div className="flex p-1 rounded-[1rem] bg-[var(--bg-secondary)]/50 border border-[var(--border)]/40 shadow-inner w-full sm:w-auto overflow-x-auto">
+          <div className="flex p-1 rounded-[1rem] bg-[var(--bg-secondary)]/50 border border-[var(--border)]/40 shadow-inner w-full sm:w-auto overflow-x-auto" role="tablist">
             {([
               { key: 'records' as const, label: '最近记录' },
               { key: 'wrong' as const, label: '易错统计' },
@@ -102,9 +136,11 @@ export function HistoryPanel({ onClose }: { onClose: () => void }) {
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
+                role="tab"
+                aria-selected={tab === t.key}
                 className={`px-4 sm:px-6 py-2 text-[10px] font-black rounded-[0.8rem] transition-all whitespace-nowrap ${
-                  tab === t.key 
-                    ? 'bg-[var(--bg-card)] text-[var(--accent)] shadow-md translate-y-[-1px]' 
+                  tab === t.key
+                    ? 'bg-[var(--bg-card)] text-[var(--accent)] shadow-md translate-y-[-1px]'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >
@@ -113,7 +149,7 @@ export function HistoryPanel({ onClose }: { onClose: () => void }) {
             ))}
           </div>
           <button
-            onClick={() => { if (confirm('确定要清空所有历史记录吗？')) clearHistory(); }}
+            onClick={() => setShowClearConfirm(true)}
             className="px-3 py-1.5 text-[9px] font-black tracking-[0.16em] uppercase opacity-30 hover:opacity-100 hover:text-[var(--error)] transition-all bg-[var(--bg-secondary)] rounded-[0.8rem] border border-transparent hover:border-[var(--error)]/20"
           >
             Clear Data
@@ -121,17 +157,40 @@ export function HistoryPanel({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto px-8 sm:px-10 pt-5 pb-8 custom-scrollbar bg-[var(--bg-secondary)]/20">
+        <div className="flex-1 overflow-y-auto px-8 sm:px-10 pt-5 pb-8 custom-scrollbar bg-[var(--bg-secondary)]/20" role="tabpanel">
           {tab === 'records' ? (
-            recentRecords.length === 0 ? (
-              <EmptyState message="暂无练习记录" />
-            ) : (
-              <div className="grid gap-3 pb-6">
-                {recentRecords.map((r) => (
-                  <RecordItem key={r.id} record={r} formatDate={formatDate} formatDuration={formatDuration} />
+            <>
+              {/* Mode filter */}
+              <div className="flex gap-2 mb-4">
+                {([
+                  { key: 'all' as ModeFilter, label: '全部' },
+                  { key: 'char' as ModeFilter, label: '单字' },
+                  { key: 'article' as ModeFilter, label: '文章' },
+                ]).map((f) => (
+                  <button
+                    key={f.key}
+                    onClick={() => setModeFilter(f.key)}
+                    className="px-3 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer"
+                    style={{
+                      backgroundColor: modeFilter === f.key ? 'var(--accent)' : 'var(--bg-secondary)',
+                      color: modeFilter === f.key ? '#fff' : 'var(--text-secondary)',
+                      border: `1px solid ${modeFilter === f.key ? 'var(--accent)' : 'var(--border)'}`,
+                    }}
+                  >
+                    {f.label}
+                  </button>
                 ))}
               </div>
-            )
+              {filteredRecords.length === 0 ? (
+                <EmptyState message="暂无练习记录" />
+              ) : (
+                <div className="grid gap-3 pb-6">
+                  {filteredRecords.map((r) => (
+                    <RecordItem key={r.id} record={r} formatDate={formatDate} formatDuration={formatDuration} />
+                  ))}
+                </div>
+              )}
+            </>
           ) : tab === 'wrong' ? (
             topWrongChars.length === 0 ? (
               <EmptyState message="尚未发现易错字" />
@@ -142,23 +201,41 @@ export function HistoryPanel({ onClose }: { onClose: () => void }) {
                     onClick={handlePracticeWrongChars}
                     className="btn-primary px-6 py-2.5 text-xs rounded-[1rem] shadow-lg hover:shadow-xl transition-all"
                   >
-                    针对性练习易错字 ({topWrongChars.length}字)
+                    针对性练习易错字 ({Math.min(topWrongChars.length, 20)}字)
                   </button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-6">
-                  {topWrongChars.map((wc, i) => (
-                    <WrongCharItem key={wc.char} charRecord={wc} rank={i + 1} />
-                  ))}
-                </div>
+
+                {wrongCharGroups.high.length > 0 && (
+                  <WrongCharGroup label="高频错字" subtitle="5次以上" chars={wrongCharGroups.high} color="var(--error)" />
+                )}
+                {wrongCharGroups.mid.length > 0 && (
+                  <WrongCharGroup label="中频错字" subtitle="2-4次" chars={wrongCharGroups.mid} color="var(--warning)" />
+                )}
+                {wrongCharGroups.low.length > 0 && (
+                  <WrongCharGroup label="偶尔错字" subtitle="1次" chars={wrongCharGroups.low} color="var(--text-muted)" />
+                )}
               </div>
             )
           ) : (
-            <div className="bg-[var(--bg-card)] rounded-[1.5rem] p-4 border border-[var(--border)]/50 shadow-sm">
-              <TrendChart records={records} />
+            <div className="space-y-4">
+              <div className="bg-[var(--bg-card)] rounded-[1.5rem] p-4 border border-[var(--border)]/50 shadow-sm">
+                <TrendChart records={records} formatDate={formatDate} />
+              </div>
+              <TrendSummary records={records} />
             </div>
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={showClearConfirm}
+        title="清空历史记录"
+        message="确定要清空所有历史记录和易错字统计吗？此操作不可撤销。"
+        confirmText="确定清空"
+        variant="danger"
+        onConfirm={() => { clearHistory(); setShowClearConfirm(false); }}
+        onCancel={() => setShowClearConfirm(false)}
+      />
     </div>
   );
 }
@@ -170,7 +247,7 @@ function StatHeroItem({ label, value, unit, color }: { label: string; value: num
       <span className="text-[9px] font-black uppercase tracking-[0.12em] opacity-30 mb-1.5 group-hover:opacity-60 transition-opacity leading-none">{label}</span>
       <div className="flex items-baseline gap-2">
         <span className="text-xl font-black font-mono tracking-tighter" style={{ color }}>{value}</span>
-        <span className="text-[10px] font-bold opacity-20 uppercase">{unit}</span>
+        {unit && <span className="text-[10px] font-bold opacity-20 uppercase">{unit}</span>}
       </div>
     </div>
   );
@@ -183,8 +260,8 @@ function RecordItem({ record, formatDate, formatDuration }: { record: PracticeRe
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-lg border-2 transition-all group-hover:scale-110 ${
-            isChar 
-              ? 'bg-[var(--accent-light)] text-[var(--accent)] border-[var(--accent)]/10 shadow-[0_8px_20px_rgba(59,130,246,0.1)]' 
+            isChar
+              ? 'bg-[var(--accent-light)] text-[var(--accent)] border-[var(--accent)]/10 shadow-[0_8px_20px_rgba(59,130,246,0.1)]'
               : 'bg-[var(--success)]/5 text-[var(--success)] border-[var(--success)]/10 shadow-[0_8px_20px_rgba(34,197,94,0.1)]'
           }`}>
             {isChar ? '单' : '文'}
@@ -219,6 +296,23 @@ function RecordItem({ record, formatDate, formatDuration }: { record: PracticeRe
   );
 }
 
+function WrongCharGroup({ label, subtitle, chars, color }: { label: string; subtitle: string; chars: WrongCharRecord[]; color: string }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2 px-1">
+        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+        <span className="text-[11px] font-black uppercase tracking-widest" style={{ color }}>{label}</span>
+        <span className="text-[9px] font-bold opacity-30">({subtitle}, {chars.length}字)</span>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-2">
+        {chars.map((wc, i) => (
+          <WrongCharItem key={wc.char} charRecord={wc} rank={i + 1} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function WrongCharItem({ charRecord, rank }: { charRecord: WrongCharRecord; rank: number }) {
   return (
     <div className="flex items-center gap-3 p-4 rounded-[1.2rem] border border-[var(--border)]/40 bg-[var(--bg-card)] hover:shadow-md transition-all group">
@@ -247,9 +341,59 @@ function EmptyState({ message }: { message: string }) {
   );
 }
 
-/* ── TrendChart Implementation (Kept largely the same but with refined styling) ── */
-function TrendChart({ records }: { records: PracticeRecord[] }) {
-  const data = useMemo(() => records.slice(0, 20).reverse(), [records]);
+function TrendSummary({ records }: { records: PracticeRecord[] }) {
+  const summary = useMemo(() => {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+    const thisWeek = records.filter((r) => new Date(r.date) >= sevenDaysAgo);
+    const lastWeek = records.filter((r) => {
+      const d = new Date(r.date);
+      return d >= fourteenDaysAgo && d < sevenDaysAgo;
+    });
+
+    const thisWeekAvg = thisWeek.length > 0
+      ? Math.round(thisWeek.reduce((s, r) => s + r.speed, 0) / thisWeek.length)
+      : 0;
+    const lastWeekAvg = lastWeek.length > 0
+      ? Math.round(lastWeek.reduce((s, r) => s + r.speed, 0) / lastWeek.length)
+      : 0;
+
+    const diff = lastWeekAvg > 0 ? thisWeekAvg - lastWeekAvg : 0;
+
+    return { thisWeekCount: thisWeek.length, thisWeekAvg, lastWeekAvg, diff };
+  }, [records]);
+
+  if (records.length < 2) return null;
+
+  return (
+    <div className="grid grid-cols-3 gap-3">
+      <div className="rounded-[1.2rem] p-4 bg-[var(--bg-card)] border border-[var(--border)]/50 text-center">
+        <div className="text-[9px] font-black uppercase tracking-widest opacity-30 mb-1">近7天练习</div>
+        <div className="text-xl font-black font-mono" style={{ color: 'var(--accent)' }}>{summary.thisWeekCount}</div>
+        <div className="text-[10px] opacity-30">次</div>
+      </div>
+      <div className="rounded-[1.2rem] p-4 bg-[var(--bg-card)] border border-[var(--border)]/50 text-center">
+        <div className="text-[9px] font-black uppercase tracking-widest opacity-30 mb-1">本周均速</div>
+        <div className="text-xl font-black font-mono" style={{ color: 'var(--text-primary)' }}>{summary.thisWeekAvg}</div>
+        <div className="text-[10px] opacity-30">wpm</div>
+      </div>
+      <div className="rounded-[1.2rem] p-4 bg-[var(--bg-card)] border border-[var(--border)]/50 text-center">
+        <div className="text-[9px] font-black uppercase tracking-widest opacity-30 mb-1">vs 上周</div>
+        <div className="text-xl font-black font-mono" style={{ color: summary.diff > 0 ? 'var(--success)' : summary.diff < 0 ? 'var(--error)' : 'var(--text-muted)' }}>
+          {summary.diff > 0 ? '+' : ''}{summary.diff}
+        </div>
+        <div className="text-[10px] opacity-30">wpm</div>
+      </div>
+    </div>
+  );
+}
+
+/* ── TrendChart with tooltip ── */
+function TrendChart({ records, formatDate }: { records: PracticeRecord[]; formatDate: (d: string) => string }) {
+  const data = useMemo(() => records.slice(0, 30).reverse(), [records]);
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
   if (data.length < 2) {
     return <EmptyState message="需要至少2次记录以生成趋势" />;
@@ -275,8 +419,9 @@ function TrendChart({ records }: { records: PracticeRecord[] }) {
   const gridLines = [0, 0.25, 0.5, 0.75, 1].map((pct) => ({
     y: padT + innerH * (1 - pct),
     speedLabel: Math.round(maxSpeed * pct),
-    accLabel: Math.round(100 * pct),
   }));
+
+  const hoverData = hoverIdx !== null ? data[hoverIdx] : null;
 
   return (
     <div className="flex flex-col gap-8">
@@ -291,8 +436,12 @@ function TrendChart({ records }: { records: PracticeRecord[] }) {
         </span>
       </div>
 
-      <div className="w-full overflow-x-auto custom-scrollbar pb-4">
-        <svg viewBox={`0 0 ${chartW} ${chartH}`} className="w-full min-w-[600px]">
+      <div className="w-full overflow-x-auto custom-scrollbar pb-4 relative">
+        <svg
+          viewBox={`0 0 ${chartW} ${chartH}`}
+          className="w-full min-w-[600px]"
+          onMouseLeave={() => setHoverIdx(null)}
+        >
           {gridLines.map((g, i) => (
             <g key={i}>
               <line x1={padL} y1={g.y} x2={chartW - padR} y2={g.y} stroke="var(--border)" strokeWidth="1" strokeDasharray="6 6" opacity="0.4" />
@@ -301,32 +450,77 @@ function TrendChart({ records }: { records: PracticeRecord[] }) {
           ))}
 
           {/* Speed line with area fill */}
-          <path 
-            d={`M ${toX(0)} ${padT + innerH} L ${speedPoints} L ${toX(data.length - 1)} ${padT + innerH} Z`} 
-            fill="var(--accent)" 
-            opacity="0.03" 
+          <path
+            d={`M ${toX(0)} ${padT + innerH} L ${speedPoints} L ${toX(data.length - 1)} ${padT + innerH} Z`}
+            fill="var(--accent)"
+            opacity="0.03"
           />
           <polyline fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" points={speedPoints} />
-          
+
           {/* Accuracy line */}
           <polyline fill="none" stroke="var(--success)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" points={accPoints} opacity="0.4" />
 
-          {/* Data points */}
-          {data.map((r, i) => (
-            <g key={i} className="group/pt cursor-pointer">
-              <circle cx={toX(i)} cy={toYSpeed(r.speed)} r="5" fill="var(--accent)" className="transition-all hover:r-7" />
-              <circle cx={toX(i)} cy={toYAcc(r.accuracy)} r="4" fill="var(--success)" opacity="0.4" />
-            </g>
-          ))}
+          {/* Hover vertical line */}
+          {hoverIdx !== null && (
+            <line x1={toX(hoverIdx)} y1={padT} x2={toX(hoverIdx)} y2={padT + innerH} stroke="var(--text-muted)" strokeWidth="1" strokeDasharray="4 4" opacity="0.5" />
+          )}
 
-          {/* X axis labels */}
-          {data.map((_, i) => (
-            <text key={`x${i}`} x={toX(i)} y={chartH - 20} textAnchor="middle" fontSize="10" fontWeight="900" fill="var(--text-muted)" opacity="0.4">#{i + 1}</text>
-          ))}
+          {/* Data points with hover zones */}
+          {data.map((r, i) => {
+            const cx = toX(i);
+            const isHovered = hoverIdx === i;
+            return (
+              <g key={i}>
+                {/* Invisible larger hit area */}
+                <rect
+                  x={cx - (innerW / data.length) / 2}
+                  y={padT}
+                  width={innerW / data.length}
+                  height={innerH}
+                  fill="transparent"
+                  onMouseEnter={() => setHoverIdx(i)}
+                  style={{ cursor: 'pointer' }}
+                />
+                <circle cx={cx} cy={toYSpeed(r.speed)} r={isHovered ? 7 : 5} fill="var(--accent)" opacity={isHovered ? 1 : 0.8} />
+                <circle cx={cx} cy={toYAcc(r.accuracy)} r={isHovered ? 6 : 4} fill="var(--success)" opacity={isHovered ? 0.8 : 0.4} />
+              </g>
+            );
+          })}
+
+          {/* Tooltip */}
+          {hoverData && hoverIdx !== null && (() => {
+            const tx = toX(hoverIdx);
+            const ty = toYSpeed(hoverData.speed);
+            const tooltipW = 140;
+            const tooltipH = 60;
+            const tooltipX = tx + 10 + tooltipW > chartW - padR ? tx - tooltipW - 10 : tx + 10;
+            const tooltipY = Math.max(padT, Math.min(ty - tooltipH / 2, padT + innerH - tooltipH));
+            return (
+              <g>
+                <rect x={tooltipX} y={tooltipY} width={tooltipW} height={tooltipH} rx="8" fill="var(--bg-card)" stroke="var(--border)" strokeWidth="1" />
+                <text x={tooltipX + 10} y={tooltipY + 18} fontSize="11" fontWeight="900" fill="var(--text-primary)">
+                  {hoverData.speed} wpm · {hoverData.accuracy}%
+                </text>
+                <text x={tooltipX + 10} y={tooltipY + 34} fontSize="10" fill="var(--text-muted)">
+                  {formatDate(hoverData.date)}
+                </text>
+                <text x={tooltipX + 10} y={tooltipY + 50} fontSize="10" fill="var(--text-muted)">
+                  {hoverData.mode === 'char' ? '单字' : '文章'} · {hoverData.totalChars}字
+                </text>
+              </g>
+            );
+          })()}
+
+          {/* X axis labels (show every Nth) */}
+          {data.map((_, i) => {
+            const step = data.length > 20 ? 5 : data.length > 10 ? 2 : 1;
+            if (i % step !== 0 && i !== data.length - 1) return null;
+            return (
+              <text key={`x${i}`} x={toX(i)} y={chartH - 20} textAnchor="middle" fontSize="10" fontWeight="900" fill="var(--text-muted)" opacity="0.4">#{i + 1}</text>
+            );
+          })}
         </svg>
       </div>
     </div>
   );
 }
-
-

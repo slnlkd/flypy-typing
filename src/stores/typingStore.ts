@@ -63,6 +63,11 @@ interface TypingState {
   timerEndTime: number | null;
   isTimerExpired: boolean;
 
+  // 暂停
+  isPaused: boolean;
+  pausedTime: number;
+  pauseStartTime: number | null;
+
   correctCount: number;
   wrongCount: number;
   totalKeystrokes: number;
@@ -77,6 +82,7 @@ interface TypingState {
   handleBackspace: () => void;
   reset: () => void;
   checkTimer: () => void;
+  togglePause: () => void;
 
   getSpeed: () => number;
   getAccuracy: () => number;
@@ -95,6 +101,9 @@ export const useTypingStore = create<TypingState>((set, get) => ({
   startTime: null,
   timerEndTime: null,
   isTimerExpired: false,
+  isPaused: false,
+  pausedTime: 0,
+  pauseStartTime: null,
   correctCount: 0,
   wrongCount: 0,
   totalKeystrokes: 0,
@@ -112,6 +121,9 @@ export const useTypingStore = create<TypingState>((set, get) => ({
       startTime: null,
       timerEndTime: null,
       isTimerExpired: false,
+      isPaused: false,
+      pausedTime: 0,
+      pauseStartTime: null,
       correctCount: 0,
       wrongCount: 0,
       totalKeystrokes: 0,
@@ -135,6 +147,9 @@ export const useTypingStore = create<TypingState>((set, get) => ({
       startTime: null,
       timerEndTime: null,
       isTimerExpired: false,
+      isPaused: false,
+      pausedTime: 0,
+      pauseStartTime: null,
       correctCount: 0,
       wrongCount: 0,
       totalKeystrokes: 0,
@@ -196,8 +211,28 @@ export const useTypingStore = create<TypingState>((set, get) => ({
     get().loadChars(pinyinChars);
   },
 
+  togglePause: () => {
+    const state = get();
+    if (!state.isStarted || state.isFinished) return;
+
+    if (state.isPaused) {
+      // Resume
+      const pauseDuration = state.pauseStartTime ? Date.now() - state.pauseStartTime : 0;
+      set({
+        isPaused: false,
+        pausedTime: state.pausedTime + pauseDuration,
+        pauseStartTime: null,
+        ...(state.timerEndTime ? { timerEndTime: state.timerEndTime + pauseDuration } : {}),
+      });
+    } else {
+      // Pause
+      set({ isPaused: true, pauseStartTime: Date.now() });
+    }
+  },
+
   checkTimer: () => {
     const state = get();
+    if (state.isPaused) return;
     if (state.timerEndTime && Date.now() >= state.timerEndTime && !state.isFinished) {
       set({ isFinished: true, isTimerExpired: true });
     }
@@ -205,7 +240,7 @@ export const useTypingStore = create<TypingState>((set, get) => ({
 
   handleKeyDown: (key) => {
     const state = get();
-    if (state.isFinished || state.chars.length === 0) return;
+    if (state.isPaused || state.isFinished || state.chars.length === 0) return;
 
     const settings = useSettingsStore.getState();
 
@@ -321,7 +356,7 @@ export const useTypingStore = create<TypingState>((set, get) => ({
 
   handleCharInput: (input: string) => {
     const state = get();
-    if (state.isFinished || state.chars.length === 0 || input.length === 0) return;
+    if (state.isPaused || state.isFinished || state.chars.length === 0 || input.length === 0) return;
 
     const settings = useSettingsStore.getState();
     const now = Date.now();
@@ -463,7 +498,7 @@ export const useTypingStore = create<TypingState>((set, get) => ({
   getSpeed: () => {
     const state = get();
     if (!state.startTime || state.correctCount === 0) return 0;
-    const elapsed = (Date.now() - state.startTime) / 1000 / 60;
+    const elapsed = get().getElapsedTime() / 60;
     if (elapsed === 0) return 0;
     return Math.round(state.correctCount / elapsed);
   },
@@ -478,7 +513,11 @@ export const useTypingStore = create<TypingState>((set, get) => ({
   getElapsedTime: () => {
     const state = get();
     if (!state.startTime) return 0;
-    return Math.floor((Date.now() - state.startTime) / 1000);
+    let totalPaused = state.pausedTime;
+    if (state.isPaused && state.pauseStartTime) {
+      totalPaused += Date.now() - state.pauseStartTime;
+    }
+    return Math.floor((Date.now() - state.startTime - totalPaused) / 1000);
   },
 
   getProgress: () => {

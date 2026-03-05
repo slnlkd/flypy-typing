@@ -1,12 +1,17 @@
 // 使用 Web Audio API 生成音效，无需加载外部文件
 
 let audioCtx: AudioContext | null = null;
+let masterVolume = 0.5;
 
 function getAudioContext(): AudioContext {
   if (!audioCtx) {
     audioCtx = new AudioContext();
   }
   return audioCtx;
+}
+
+export function setMasterVolume(v: number) {
+  masterVolume = Math.max(0, Math.min(1, v));
 }
 
 function playTone(frequency: number, duration: number, volume: number, type: OscillatorType = 'sine') {
@@ -18,7 +23,8 @@ function playTone(frequency: number, duration: number, volume: number, type: Osc
     osc.type = type;
     osc.frequency.setValueAtTime(frequency, ctx.currentTime);
 
-    gain.gain.setValueAtTime(volume, ctx.currentTime);
+    const effectiveVolume = volume * masterVolume;
+    gain.gain.setValueAtTime(effectiveVolume, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
 
     osc.connect(gain);
@@ -63,7 +69,8 @@ export function playFinishSound() {
     const gain = ctx.createGain();
     osc.type = 'sine';
     osc.frequency.setValueAtTime(freq, now + i * 0.12);
-    gain.gain.setValueAtTime(0.1, now + i * 0.12);
+    const effectiveVolume = 0.1 * masterVolume;
+    gain.gain.setValueAtTime(effectiveVolume, now + i * 0.12);
     gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.3);
     osc.connect(gain);
     gain.connect(ctx.destination);

@@ -1,16 +1,27 @@
+import { useState, useCallback } from 'react';
 import { useTypingStore } from '../../stores/typingStore';
 import type { PracticeMode } from '../../stores/typingStore';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { ConfirmDialog } from '../common/ConfirmDialog';
 
 export function Header({ onShowHistory, onShowSettings }: { onShowHistory: () => void; onShowSettings: () => void }) {
-  const { mode, setMode, loadRandomChars } = useTypingStore();
+  const { mode, setMode, loadRandomChars, isStarted, isFinished } = useTypingStore();
   const { darkMode, toggleDarkMode } = useSettingsStore();
+  const [pendingMode, setPendingMode] = useState<PracticeMode | null>(null);
 
-  const handleModeChange = (newMode: PracticeMode) => {
-    if (newMode === mode) return;
+  const doModeChange = useCallback((newMode: PracticeMode) => {
     setMode(newMode);
     if (newMode === 'char') {
       loadRandomChars();
+    }
+  }, [setMode, loadRandomChars]);
+
+  const handleModeChange = (newMode: PracticeMode) => {
+    if (newMode === mode) return;
+    if (isStarted && !isFinished) {
+      setPendingMode(newMode);
+    } else {
+      doModeChange(newMode);
     }
   };
 
@@ -40,10 +51,19 @@ export function Header({ onShowHistory, onShowSettings }: { onShowHistory: () =>
           className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors cursor-pointer"
           style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
           title={darkMode ? '切换日间模式' : '切换夜间模式'}
+          aria-label={darkMode ? '切换日间模式' : '切换夜间模式'}
         >
           {darkMode ? '☀' : '🌙'}
         </button>
       </div>
+      <ConfirmDialog
+        open={pendingMode !== null}
+        title="切换练习模式"
+        message="当前练习进度将丢失，确定要切换吗？"
+        confirmText="确定切换"
+        onConfirm={() => { if (pendingMode) doModeChange(pendingMode); setPendingMode(null); }}
+        onCancel={() => setPendingMode(null)}
+      />
     </header>
   );
 }
@@ -52,6 +72,7 @@ function ModeButton({ label, active, onClick }: { label: string; active: boolean
   return (
     <button
       onClick={onClick}
+      aria-pressed={active}
       className="px-4 py-1.5 text-sm rounded-md transition-all cursor-pointer"
       style={{
         backgroundColor: active ? 'var(--bg-card)' : 'transparent',
@@ -72,6 +93,7 @@ function IconButton({ icon, onClick, title }: { icon: string; onClick: () => voi
       className="w-8 h-8 flex items-center justify-center rounded-lg text-sm transition-colors cursor-pointer"
       style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
       title={title}
+      aria-label={title}
     >
       {icon}
     </button>

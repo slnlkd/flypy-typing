@@ -1,5 +1,6 @@
 import { useSettingsStore } from '../../stores/settingsStore';
 import type { CharCount, PracticeType } from '../../stores/settingsStore';
+import { setMasterVolume, playKeySound } from '../../utils/sound';
 
 export function SettingsPanel({ onClose }: { onClose: () => void }) {
   const {
@@ -8,6 +9,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
     showPinyin, togglePinyin,
     highlightKeys, toggleHighlightKeys,
     soundEnabled, toggleSound,
+    soundVolume, setSoundVolume,
     fontSize, setFontSize,
     charCount, setCharCount,
     practiceType, setPracticeType,
@@ -16,12 +18,15 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-300"
-      style={{ backgroundColor: 'rgba(2, 6, 23, 0.75)', backdropFilter: 'blur(20px)' }}
+      style={{ backgroundColor: 'rgba(2, 6, 23, 0.5)', backdropFilter: 'blur(8px)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
         className="w-full max-w-3xl max-h-[92vh] overflow-hidden rounded-[3rem] flex flex-col shadow-[0_64px_128px_-12px_rgba(0,0,0,0.7)] animate-in zoom-in-95 slide-in-from-bottom-12 duration-500"
         style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+        role="dialog"
+        aria-modal="true"
+        aria-label="设置"
       >
         {/* Header - 极致间距：px-24 确保完全避开圆角遮挡 */}
         <div className="px-8 sm:px-10 pt-6 pb-4 flex items-start justify-between gap-3">
@@ -83,7 +88,24 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
 
           {/* 声音与反馈 */}
           <SettingsSection title="反馈体验">
-            <ToggleRow label="机械键盘音效" desc="开启后模拟真实打字反馈声" active={soundEnabled} onToggle={toggleSound} />
+            <div className="grid gap-1">
+              <ToggleRow label="机械键盘音效" desc="开启后模拟真实打字反馈声" active={soundEnabled} onToggle={toggleSound} />
+              {soundEnabled && (
+                <SliderRow
+                  label="音效音量"
+                  value={soundVolume}
+                  min={0}
+                  max={100}
+                  step={5}
+                  onChange={(v) => {
+                    setSoundVolume(v);
+                    setMasterVolume(v / 100);
+                    playKeySound();
+                  }}
+                  unit="%"
+                />
+              )}
+            </div>
           </SettingsSection>
         </div>
       </div>
@@ -117,6 +139,10 @@ function ToggleRow({ label, desc, active, onToggle }: { label: string; desc: str
       <div
         className="w-12 h-7 rounded-full relative transition-all duration-500 shadow-inner"
         style={{ backgroundColor: active ? 'var(--accent)' : 'var(--border)' }}
+        role="switch"
+        aria-checked={active}
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}
       >
         <div
           className="absolute top-0.5 w-6 h-6 rounded-full bg-white shadow-xl transition-all duration-500"

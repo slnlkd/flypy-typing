@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Header } from './components/Layout/Header';
 import { KeyboardMap } from './components/KeyboardMap/KeyboardMap';
 import { CharPractice } from './components/TypingArea/CharPractice';
@@ -9,24 +9,28 @@ import { HistoryPanel } from './components/Stats/HistoryPanel';
 import { SettingsPanel } from './components/Settings/SettingsPanel';
 import { useTypingStore } from './stores/typingStore';
 import { useSettingsStore } from './stores/settingsStore';
+import { setMasterVolume } from './utils/sound';
 
 function App() {
   const { mode, isFinished } = useTypingStore();
   const [showHistory, setShowHistory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  useSettingsStore();
+  const { soundVolume } = useSettingsStore();
+
+  useEffect(() => {
+    setMasterVolume(soundVolume / 100);
+  }, [soundVolume]);
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center px-4 py-6"
+      className="h-screen flex items-center justify-center px-4 py-3 overflow-hidden"
       style={{ backgroundColor: 'var(--bg-secondary)' }}
     >
       <div
-        className="w-full max-w-5xl flex flex-col rounded-2xl overflow-hidden shadow-lg"
+        className="w-full max-w-5xl flex flex-col rounded-2xl overflow-hidden shadow-lg h-full"
         style={{
           backgroundColor: 'var(--bg-primary)',
           border: '1px solid var(--border)',
-          minHeight: 'min(90vh, 900px)',
         }}
       >
         <Header
@@ -34,9 +38,9 @@ function App() {
           onShowSettings={() => setShowSettings(true)}
         />
 
-        <main className="flex-1 flex flex-col items-center gap-6 px-6 py-6">
+        <main className="flex-1 flex flex-col items-center gap-3 px-6 py-3 min-h-0 overflow-hidden">
           <KeyboardMap />
-          <div className="w-full flex-1 flex flex-col items-center justify-center">
+          <div className="w-full max-w-4xl flex-1 min-h-0 flex flex-col items-center overflow-hidden">
             {mode === 'char' ? <CharPractice /> : <ArticlePractice />}
           </div>
           <StatsBar />

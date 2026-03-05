@@ -8,6 +8,8 @@ export function ArticlePractice() {
     chars,
     currentIndex,
     isFinished,
+    isPaused,
+    togglePause,
     loadArticle,
     handleCharInput,
     handleBackspace,
@@ -109,8 +111,16 @@ export function ArticlePractice() {
   }
 
   return (
-    <div className="flex flex-col gap-6 w-full max-w-4xl mx-auto py-4">
-      <div className="flex items-center gap-2 px-2">
+    <div className="flex flex-1 flex-col gap-5 w-full max-w-4xl mx-auto py-4 pb-3 relative h-full min-h-0">
+      {isPaused && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center rounded-2xl" style={{ backgroundColor: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(8px)' }}>
+          <div className="flex flex-col items-center gap-3 animate-pulse">
+            <span className="text-2xl font-black" style={{ color: 'var(--text-primary)' }}>已暂停</span>
+            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>按 Space 或 Esc 继续</span>
+          </div>
+        </div>
+      )}
+      <div className="flex items-center gap-2 px-2 shrink-0 min-h-[40px]">
         <div className="flex gap-1.5 flex-wrap flex-1">
           {presetArticles.map((article, i) => (
             <button
@@ -136,7 +146,7 @@ export function ArticlePractice() {
 
       {showImport && (
         <div
-          className="p-5 rounded-xl"
+          className="p-5 rounded-xl shrink-0"
           style={{
             backgroundColor: 'var(--bg-secondary)',
             border: '1px solid var(--border)',
@@ -175,7 +185,7 @@ export function ArticlePractice() {
 
       <div
         ref={containerRef}
-        className="flex-1 flex flex-col gap-1.5 p-4 rounded-2xl overflow-y-auto custom-scrollbar relative"
+        className="flex-1 min-h-0 flex flex-col gap-1.5 p-4 rounded-2xl overflow-y-auto custom-scrollbar relative"
         style={{
           backgroundColor: 'var(--bg-secondary)',
           border: '1px solid var(--border)',
@@ -218,6 +228,13 @@ export function ArticlePractice() {
           }}
           onKeyDown={(e) => {
             if (e.ctrlKey || e.metaKey) return;
+            if (isPaused) {
+              if (e.key === ' ' || e.key === 'Escape') {
+                e.preventDefault();
+                togglePause();
+              }
+              return;
+            }
             if (e.key === 'Escape') {
               loadArticle(presetArticles[0].content);
             }
@@ -321,7 +338,7 @@ export function ArticlePractice() {
         )}
       </div>
 
-      <div className="flex items-center gap-4 px-6">
+      <div className="flex items-center gap-4 px-6 shrink-0 mb-1">
         <div className="flex-1 h-2 rounded-full bg-[var(--bg-secondary)] overflow-hidden border border-[var(--border)]">
           <div
             className="h-full bg-[var(--accent)] transition-all duration-500 shadow-[0_0_10px_var(--accent-light)]"

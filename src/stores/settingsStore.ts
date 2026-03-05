@@ -13,6 +13,7 @@ interface SettingsState {
   highlightKeys: boolean;
   fontSize: number;
   soundEnabled: boolean;
+  soundVolume: number;
 
   // 单字练习设置
   charCount: CharCount;
@@ -27,6 +28,7 @@ interface SettingsState {
   togglePinyin: () => void;
   toggleHighlightKeys: () => void;
   toggleSound: () => void;
+  setSoundVolume: (v: number) => void;
   setFontSize: (size: number) => void;
   setCharCount: (count: CharCount) => void;
   setCharPool: (pool: CharPool) => void;
@@ -43,6 +45,7 @@ export const useSettingsStore = create<SettingsState>()(
       highlightKeys: true,
       fontSize: 24,
       soundEnabled: false,
+      soundVolume: 50,
 
       charCount: 50,
       charPool: 500,
@@ -63,6 +66,7 @@ export const useSettingsStore = create<SettingsState>()(
       togglePinyin: () => set({ showPinyin: !get().showPinyin }),
       toggleHighlightKeys: () => set({ highlightKeys: !get().highlightKeys }),
       toggleSound: () => set({ soundEnabled: !get().soundEnabled }),
+      setSoundVolume: (v) => set({ soundVolume: v }),
       setFontSize: (size) => set({ fontSize: size }),
       setCharCount: (count) => set({ charCount: count }),
       setCharPool: (pool) => set({ charPool: pool }),
