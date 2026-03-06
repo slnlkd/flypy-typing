@@ -18,34 +18,31 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-300"
-      style={{ backgroundColor: 'rgba(2, 6, 23, 0.5)', backdropFilter: 'blur(8px)' }}
+      style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="w-full max-w-3xl max-h-[92vh] overflow-hidden rounded-[3rem] flex flex-col shadow-[0_64px_128px_-12px_rgba(0,0,0,0.7)] animate-in zoom-in-95 slide-in-from-bottom-12 duration-500"
+        className="w-full max-w-3xl max-h-[92vh] overflow-hidden rounded-2xl flex flex-col shadow-lg animate-in zoom-in-95 slide-in-from-bottom-4 duration-300"
         style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
         role="dialog"
         aria-modal="true"
         aria-label="设置"
       >
-        {/* Header - 极致间距：px-24 确保完全避开圆角遮挡 */}
+        {/* Header */}
         <div className="px-8 sm:px-10 pt-6 pb-4 flex items-start justify-between gap-3">
-          <div className="space-y-1.5">
-            <h2 className="text-2xl sm:text-3xl font-black leading-none tracking-tight" style={{ color: 'var(--text-primary)' }}>设置</h2>
-            <div className="flex items-center gap-3">
-              <span className="h-2 w-8 rounded-full bg-[var(--accent)]" />
-              <p className="text-[9px] font-black uppercase tracking-[0.28em] opacity-40">Settings & Preferences</p>
-            </div>
+          <div className="space-y-1">
+            <h2 className="text-2xl font-bold leading-none" style={{ color: 'var(--text-primary)' }}>设置</h2>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>偏好设定</p>
           </div>
           <button
             onClick={onClose}
-            className="w-10 h-10 rounded-[0.9rem] flex items-center justify-center transition-all hover:bg-[var(--bg-secondary)] active:scale-90 border border-[var(--border)] group"
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[var(--bg-secondary)] border border-[var(--border)]"
           >
-            <span className="text-base opacity-35 group-hover:opacity-100 transition-opacity" style={{ color: 'var(--text-primary)' }}>✕</span>
+            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>✕</span>
           </button>
         </div>
 
-        {/* Content Area - 同步 px-24 间距 */}
+        {/* Content Area */}
         <div className="flex-1 overflow-y-auto px-8 sm:px-10 pb-8 custom-scrollbar space-y-5">
           {/* 显示与交互 */}
           <SettingsSection title="显示与交互">
@@ -116,10 +113,8 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
 function SettingsSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-3">
-      {/* 标题增加内缩进 px-4 */}
-      <h3 className="text-[11px] font-black uppercase tracking-[0.32em] opacity-30 px-2">{title}</h3>
-      {/* 增加区块内补白 p-8，确保内部内容离边框有足够的距离 */}
-      <div className="bg-[var(--bg-secondary)]/40 rounded-[1.5rem] p-3 sm:p-4 border border-[var(--border)]/60 shadow-inner">
+      <h3 className="text-xs font-semibold px-2" style={{ color: 'var(--text-muted)' }}>{title}</h3>
+      <div className="rounded-xl p-3 sm:p-4 border" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border)' }}>
         {children}
       </div>
     </div>
@@ -129,15 +124,15 @@ function SettingsSection({ title, children }: { title: string; children: React.R
 function ToggleRow({ label, desc, active, onToggle }: { label: string; desc: string; active: boolean; onToggle: () => void }) {
   return (
     <div
-      className="flex items-center justify-between py-2 px-3 rounded-[1rem] hover:bg-[var(--bg-card)] hover:shadow-lg transition-all cursor-pointer group"
+      className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-[var(--bg-card)] transition-colors cursor-pointer"
       onClick={onToggle}
     >
       <div className="space-y-1">
-        <div className="text-base font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>{label}</div>
-        <div className="text-[12px] opacity-40 font-medium">{desc}</div>
+        <div className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>{label}</div>
+        <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{desc}</div>
       </div>
       <div
-        className="w-12 h-7 rounded-full relative transition-all duration-500 shadow-inner"
+        className="w-12 h-7 rounded-full relative transition-all duration-300 shadow-inner"
         style={{ backgroundColor: active ? 'var(--accent)' : 'var(--border)' }}
         role="switch"
         aria-checked={active}
@@ -145,7 +140,7 @@ function ToggleRow({ label, desc, active, onToggle }: { label: string; desc: str
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}
       >
         <div
-          className="absolute top-0.5 w-6 h-6 rounded-full bg-white shadow-xl transition-all duration-500"
+          className="absolute top-0.5 w-6 h-6 rounded-full bg-white shadow-md transition-all duration-300"
           style={{ transform: active ? 'translateX(22px)' : 'translateX(2px)' }}
         />
       </div>
@@ -157,10 +152,10 @@ function SliderRow({ label, value, min, max, step, onChange, unit }: {
   label: string; value: number; min: number; max: number; step: number; onChange: (v: number) => void; unit: string;
 }) {
   return (
-    <div className="flex items-center justify-between py-2 px-3 rounded-[1rem] hover:bg-[var(--bg-card)] hover:shadow-lg transition-all group">
+    <div className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-[var(--bg-card)] transition-colors">
       <div className="space-y-1">
-        <div className="text-base font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>{label}</div>
-        <div className="text-[12px] opacity-40 font-medium">当前设定值: {value}{unit}</div>
+        <div className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>{label}</div>
+        <div className="text-xs" style={{ color: 'var(--text-muted)' }}>当前设定值: {value}{unit}</div>
       </div>
       <div className="flex items-center gap-4">
         <input
@@ -170,7 +165,8 @@ function SliderRow({ label, value, min, max, step, onChange, unit }: {
           step={step}
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="w-32 h-2 bg-[var(--border)] rounded-full appearance-none cursor-pointer accent-[var(--accent)]"
+          className="w-32 h-2 rounded-full appearance-none cursor-pointer accent-[var(--accent)]"
+          style={{ backgroundColor: 'var(--border)' }}
         />
       </div>
     </div>
@@ -182,13 +178,13 @@ function SelectRow<T extends string | number>({ label, value, options, onChange 
 }) {
   return (
     <div className="flex flex-col gap-2 py-1 px-3">
-      <span className="text-base font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>{label}</span>
+      <span className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>{label}</span>
       <div className="flex flex-wrap gap-1.5">
         {options.map((opt) => (
           <button
             key={String(opt.value)}
             onClick={() => onChange(opt.value)}
-            className="flex-1 min-w-[84px] px-4 py-2 text-[12px] font-black rounded-[1rem] transition-all cursor-pointer border-2 shadow-sm"
+            className="flex-1 min-w-[84px] px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer border"
             style={{
               backgroundColor: value === opt.value ? 'var(--accent)' : 'var(--bg-card)',
               color: value === opt.value ? '#fff' : 'var(--text-secondary)',
@@ -202,5 +198,3 @@ function SelectRow<T extends string | number>({ label, value, options, onChange 
     </div>
   );
 }
-
-

@@ -57,13 +57,13 @@ export function ResultPanel() {
   return (
     <div
       className="fixed inset-0 flex items-center justify-center z-50"
-      style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+      style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
       onClick={(e) => {
         if (e.target === e.currentTarget) loadRandomChars();
       }}
     >
       <div
-        className="rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl animate-in zoom-in-95 duration-300"
+        className="rounded-2xl p-8 max-w-md w-full mx-4 shadow-lg animate-in zoom-in-95 duration-300"
         style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
         role="dialog"
         aria-modal="true"
@@ -76,12 +76,12 @@ export function ResultPanel() {
         {/* 速度等级 */}
         <div className="flex flex-col items-center mb-6">
           <div
-            className="text-4xl font-black mt-2 mb-1"
+            className="text-4xl font-bold mt-2 mb-1"
             style={{ color: level.color }}
           >
             {level.level}
           </div>
-          <div className="text-[10px] font-black uppercase tracking-widest opacity-30">
+          <div className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
             Speed Level
           </div>
         </div>

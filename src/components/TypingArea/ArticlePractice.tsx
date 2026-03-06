@@ -62,8 +62,8 @@ export function ArticlePractice() {
     const updateCharsPerLine = () => {
       if (!containerRef.current) return;
       const containerWidth = containerRef.current.clientWidth;
-      const horizontalPadding = 32; // p-4
-      const gap = 1; // gap-px
+      const horizontalPadding = 32;
+      const gap = 1;
       const minCellSize = fontSize * 1.0;
       const availableWidth = Math.max(0, containerWidth - horizontalPadding);
       const next = Math.max(8, Math.floor((availableWidth + gap) / (minCellSize + gap)));
@@ -113,10 +113,10 @@ export function ArticlePractice() {
   return (
     <div className="flex flex-1 flex-col gap-5 w-full max-w-4xl mx-auto py-4 pb-3 relative h-full min-h-0">
       {isPaused && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center rounded-2xl" style={{ backgroundColor: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(8px)' }}>
-          <div className="flex flex-col items-center gap-3 animate-pulse">
-            <span className="text-2xl font-black" style={{ color: 'var(--text-primary)' }}>已暂停</span>
-            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>按 Space 或 Esc 继续</span>
+        <div className="absolute inset-0 z-20 flex items-center justify-center rounded-xl" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}>
+          <div className="flex flex-col items-center gap-3">
+            <span className="text-2xl font-bold" style={{ color: '#fff' }}>已暂停</span>
+            <span className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>按 Space 或 Esc 继续</span>
           </div>
         </div>
       )}
@@ -150,7 +150,7 @@ export function ArticlePractice() {
           style={{
             backgroundColor: 'var(--bg-secondary)',
             border: '1px solid var(--border)',
-            boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+            boxShadow: 'var(--shadow)',
           }}
         >
           <textarea
@@ -185,11 +185,10 @@ export function ArticlePractice() {
 
       <div
         ref={containerRef}
-        className="flex-1 min-h-0 flex flex-col gap-1.5 p-4 rounded-2xl overflow-y-auto custom-scrollbar relative"
+        className="flex-1 min-h-0 flex flex-col gap-1.5 p-4 rounded-xl overflow-y-auto custom-scrollbar relative"
         style={{
           backgroundColor: 'var(--bg-secondary)',
           border: '1px solid var(--border)',
-          boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.02)',
         }}
         onClick={() => hiddenInputRef.current?.focus()}
       >
@@ -267,7 +266,8 @@ export function ArticlePractice() {
                   return (
                     <div key={charIdx} className="relative flex flex-col items-center w-full">
                       {isCurrent && showPinyin && (
-                        <div className="absolute -top-6 whitespace-nowrap px-1.5 py-0.5 rounded bg-[var(--accent)] text-[10px] font-black text-white shadow-lg animate-in fade-in slide-in-from-bottom-1 duration-200">
+                        <div className="absolute -top-6 whitespace-nowrap px-1.5 py-0.5 rounded text-xs font-bold text-white shadow-sm animate-in fade-in slide-in-from-bottom-1 duration-200"
+                             style={{ backgroundColor: 'var(--accent)' }}>
                           {tc.pinyinChar.pinyinWithTone}
                         </div>
                       )}
@@ -288,8 +288,11 @@ export function ArticlePractice() {
               </div>
 
               <div
-                className="grid gap-px py-1 rounded-lg bg-[var(--bg-primary)]/40 border border-[var(--border)] w-full"
-                style={{ gridTemplateColumns: `repeat(${charsPerLine}, minmax(0, 1fr))` }}
+                className="grid gap-px py-1 rounded-lg border border-[var(--border)] w-full"
+                style={{
+                  gridTemplateColumns: `repeat(${charsPerLine}, minmax(0, 1fr))`,
+                  backgroundColor: isCurrentLine ? 'var(--accent-light)' : 'var(--bg-primary)',
+                }}
               >
                 {lineChars.map((tc, charIdx) => {
                   const actualIdx = lineStartIndex + charIdx;
@@ -307,11 +310,10 @@ export function ArticlePractice() {
                         height: `${fontSize * 1.0}px`,
                         backgroundColor: isCurrent ? 'var(--accent-light)' : 'transparent',
                         border: isCurrent ? '2px solid var(--accent)' : 'none',
-                        boxShadow: isCurrent ? '0 0 10px var(--accent-light)' : 'none',
                       }}
                     >
                       <span
-                        className="font-black"
+                        className="font-bold"
                         style={{
                           fontSize: `${fontSize * 0.7}px`,
                           color: isWrong ? 'var(--error)' : 'var(--success)',
@@ -329,9 +331,9 @@ export function ArticlePractice() {
         })}
 
         {isFinished && (
-          <div className="py-10 text-center animate-bounce">
-            <h2 className="text-3xl font-black text-[var(--success)] mb-2">练习圆满完成！</h2>
-            <p className="text-sm font-bold text-[var(--text-muted)] uppercase tracking-widest">
+          <div className="py-10 text-center">
+            <h2 className="text-3xl font-bold text-[var(--success)] mb-2">练习圆满完成！</h2>
+            <p className="text-sm text-[var(--text-muted)]">
               按 <kbd>Esc</kbd> 重新开始新的练习
             </p>
           </div>
@@ -339,13 +341,13 @@ export function ArticlePractice() {
       </div>
 
       <div className="flex items-center gap-4 px-6 shrink-0 mb-1">
-        <div className="flex-1 h-2 rounded-full bg-[var(--bg-secondary)] overflow-hidden border border-[var(--border)]">
+        <div className="flex-1 h-2 rounded-full overflow-hidden border border-[var(--border)]" style={{ backgroundColor: 'var(--bg-secondary)' }}>
           <div
-            className="h-full bg-[var(--accent)] transition-all duration-500 shadow-[0_0_10px_var(--accent-light)]"
-            style={{ width: `${progress}%` }}
+            className="h-full transition-all duration-500"
+            style={{ width: `${progress}%`, backgroundColor: 'var(--accent)' }}
           />
         </div>
-        <span className="text-[10px] font-black text-[var(--text-muted)] tracking-tighter w-12 text-right">
+        <span className="text-xs font-semibold w-12 text-right" style={{ color: 'var(--text-muted)' }}>
           {progress}%
         </span>
       </div>

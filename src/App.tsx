@@ -47,10 +47,29 @@ function App() {
         </main>
 
         <footer
-          className="text-center py-3 text-xs"
+          className="flex items-center justify-center gap-4 py-3 text-xs"
           style={{ color: 'var(--text-muted)', borderTop: '1px solid var(--border)' }}
         >
-          小鹤双拼打字练习 · 键盘输入即开始
+          <span>小鹤双拼打字练习 · 键盘输入即开始</span>
+          <span style={{ color: 'var(--border)' }}>|</span>
+          <a
+            href="https://flypy.cc/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold transition-colors hover:underline"
+            style={{ color: 'var(--accent)' }}
+          >
+            小鹤官网
+          </a>
+          <a
+            href="https://rime.im/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold transition-colors hover:underline"
+            style={{ color: 'var(--accent)' }}
+          >
+            推荐 Rime 输入法
+          </a>
         </footer>
       </div>
 
