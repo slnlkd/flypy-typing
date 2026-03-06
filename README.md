@@ -1,73 +1,117 @@
-# React + TypeScript + Vite
+# flypy-typing
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> 一个专注于 **小鹤双拼** 的网页打字练习工具，帮助你从入门到提速。
 
-Currently, two official plugins are available:
+## 项目简介
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+`flypy-typing` 是基于 **React + TypeScript + Vite** 开发的双拼练习应用，面向小鹤双拼用户，提供单字/文章练习、实时统计、历史记录、错字分析、键位提示与练习设置等功能。
 
-## React Compiler
+适合人群：
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- 想系统练习小鹤双拼的新手
+- 想提升速度与准确率的进阶用户
+- 希望通过错字统计进行针对性训练的用户
 
-## Expanding the ESLint configuration
+## 功能亮点
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- 支持两种练习模式：`单字练习`、`文章练习`
+- 支持多种出题策略：`随机`、`顺序`、`难字`、`声母专项`、`韵母专项`
+- 内置实时统计：速度、准确率、进度、连击
+- 支持限时模式：`60s / 180s / 300s`
+- 支持练习历史记录与高频错字统计
+- 支持键位图高亮、拼音显示、字号、音效音量等个性化设置
+- 本地持久化设置与历史数据（基于 Zustand Persist）
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## 界面预览
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+![应用截图](./src/photo/fcb82aea-0f8f-4dfe-8924-c7b76b0254b3.png)
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 快速开始
+
+### 1. 安装依赖
+
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 2. 启动开发环境
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run dev
 ```
+
+### 3. 构建生产版本
+
+```bash
+npm run build
+```
+
+### 4. 本地预览构建结果
+
+```bash
+npm run preview
+```
+
+### 5. 代码检查
+
+```bash
+npm run lint
+```
+
+## 使用说明
+
+1. 打开页面后，选择练习模式（单字或文章）。
+2. 根据需要调整练习参数（字数、出题模式、限时模式、音效等）。
+3. 直接在键盘输入即可开始。
+4. 练习结束后查看结果面板，并在历史记录中观察长期趋势。
+
+## 项目结构
+
+```text
+flypy-typing/
+├─ public/                 # 静态资源
+├─ src/
+│  ├─ components/          # UI 组件（Layout / TypingArea / KeyboardMap / Stats / Settings）
+│  ├─ data/                # 静态字典数据（flypy 映射等）
+│  ├─ stores/              # Zustand 状态管理
+│  ├─ utils/               # 纯工具函数（拼音转换、输入校验、音效等）
+│  ├─ App.tsx              # 应用主入口
+│  └─ main.tsx             # 渲染入口
+├─ package.json
+└─ README.md
+```
+
+## 技术栈
+
+- React 19
+- TypeScript 5
+- Vite 7
+- Zustand 5
+- Tailwind CSS 4
+- pinyin-pro
+
+## 数据与配置说明
+
+- 练习设置存储于本地：`flypy-settings`
+- 历史记录与错字统计存储于本地：`flypy-history`
+- 题库与编码映射位于：`src/data/flypy.ts`
+
+## 开发建议
+
+- 提交前至少执行：
+
+```bash
+npm run lint
+npm run build
+```
+
+- 若新增较复杂逻辑，建议补充对应测试（例如放在 `src/utils/__tests__/`）。
+
+## 致谢与参考
+
+- 小鹤双拼官网：[https://flypy.cc/](https://flypy.cc/)
+- Rime 输入法：[https://rime.im/](https://rime.im/)
+
+## License
+
+当前仓库未声明 License。若计划开源分发，建议补充 `LICENSE` 文件。

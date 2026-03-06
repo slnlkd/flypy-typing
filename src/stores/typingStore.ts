@@ -416,7 +416,11 @@ export const useTypingStore = create<TypingState>((set, get) => ({
         combo++;
         maxCombo = Math.max(maxCombo, combo);
         if (settings.soundEnabled) {
-          combo >= 5 ? playComboSound(combo) : playCorrectSound();
+          if (combo >= 5) {
+            playComboSound(combo);
+          } else {
+            playCorrectSound();
+          }
         }
       } else {
         newChars[idx] = {

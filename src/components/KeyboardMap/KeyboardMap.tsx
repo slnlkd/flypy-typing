@@ -4,11 +4,10 @@ import { useTypingStore } from '../../stores/typingStore';
 
 export function KeyboardMap() {
   const { showKeyboard, highlightKeys } = useSettingsStore();
-  const { currentInput, chars, currentIndex } = useTypingStore();
+  const { currentInput, chars, currentIndex, mode } = useTypingStore();
 
   if (!showKeyboard) return null;
 
-  const { mode } = useTypingStore();
   const currentChar = chars[currentIndex];
   const expectedCode = currentChar?.pinyinChar.flypyCode || '';
 
