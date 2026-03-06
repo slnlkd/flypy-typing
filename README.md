@@ -1,8 +1,14 @@
 # flypy-typing
 
+[中文](#中文) | [English](#english)
+
+---
+
+## 中文
+
 > 一个专注于 **小鹤双拼** 的网页打字练习工具，帮助你从入门到提速。
 
-## 项目简介
+### 项目简介
 
 `flypy-typing` 是基于 **React + TypeScript + Vite** 开发的双拼练习应用，面向小鹤双拼用户，提供单字/文章练习、实时统计、历史记录、错字分析、键位提示与练习设置等功能。
 
@@ -12,7 +18,7 @@
 - 想提升速度与准确率的进阶用户
 - 希望通过错字统计进行针对性训练的用户
 
-## 功能亮点
+### 功能亮点
 
 - 支持两种练习模式：`单字练习`、`文章练习`
 - 支持多种出题策略：`随机`、`顺序`、`难字`、`声母专项`、`韵母专项`
@@ -22,50 +28,50 @@
 - 支持键位图高亮、拼音显示、字号、音效音量等个性化设置
 - 本地持久化设置与历史数据（基于 Zustand Persist）
 
-## 界面预览
+### 界面预览
 
-![应用截图](./src/photo/fcb82aea-0f8f-4dfe-8924-c7b76b0254b3.png)
+![应用截图](./docs/preview.png)
 
-## 快速开始
+### 快速开始
 
-### 1. 安装依赖
+1. 安装依赖
 
 ```bash
 npm install
 ```
 
-### 2. 启动开发环境
+2. 启动开发环境
 
 ```bash
 npm run dev
 ```
 
-### 3. 构建生产版本
+3. 构建生产版本
 
 ```bash
 npm run build
 ```
 
-### 4. 本地预览构建结果
+4. 本地预览构建结果
 
 ```bash
 npm run preview
 ```
 
-### 5. 代码检查
+5. 代码检查
 
 ```bash
 npm run lint
 ```
 
-## 使用说明
+### 使用说明
 
 1. 打开页面后，选择练习模式（单字或文章）。
 2. 根据需要调整练习参数（字数、出题模式、限时模式、音效等）。
 3. 直接在键盘输入即可开始。
 4. 练习结束后查看结果面板，并在历史记录中观察长期趋势。
 
-## 项目结构
+### 项目结构
 
 ```text
 flypy-typing/
@@ -81,7 +87,7 @@ flypy-typing/
 └─ README.md
 ```
 
-## 技术栈
+### 技术栈
 
 - React 19
 - TypeScript 5
@@ -90,28 +96,113 @@ flypy-typing/
 - Tailwind CSS 4
 - pinyin-pro
 
-## 数据与配置说明
+### 数据与配置说明
 
 - 练习设置存储于本地：`flypy-settings`
 - 历史记录与错字统计存储于本地：`flypy-history`
 - 题库与编码映射位于：`src/data/flypy.ts`
 
-## 开发建议
-
-- 提交前至少执行：
-
-```bash
-npm run lint
-npm run build
-```
-
-- 若新增较复杂逻辑，建议补充对应测试（例如放在 `src/utils/__tests__/`）。
-
-## 致谢与参考
+### 致谢与参考
 
 - 小鹤双拼官网：[https://flypy.cc/](https://flypy.cc/)
 - Rime 输入法：[https://rime.im/](https://rime.im/)
 
-## License
+### License
 
-当前仓库未声明 License。若计划开源分发，建议补充 `LICENSE` 文件。
+本项目采用 [MIT License](./LICENSE) 开源。
+
+---
+
+## English
+
+> A web-based typing practice app focused on **Flypy (Xiaohe Shuangpin)**, built to help users improve speed and accuracy.
+
+### Overview
+
+`flypy-typing` is built with **React + TypeScript + Vite**. It provides character/article practice, real-time stats, history tracking, wrong-character analysis, keyboard hints, and customizable settings for Flypy learners.
+
+### Features
+
+- Two practice modes: `Character Practice` and `Article Practice`
+- Multiple question strategies: `Random`, `Sequential`, `Hard`, `Initial-focused`, `Final-focused`
+- Real-time metrics: speed, accuracy, progress, combo
+- Timer modes: `60s / 180s / 300s`
+- Practice history and high-frequency mistake statistics
+- Configurable keyboard highlighting, pinyin display, font size, sound effects, and volume
+- Local persistence for settings and history (Zustand Persist)
+
+### Preview
+
+![App Preview](./docs/preview.png)
+
+### Quick Start
+
+1. Install dependencies
+
+```bash
+npm install
+```
+
+2. Start dev server
+
+```bash
+npm run dev
+```
+
+3. Build for production
+
+```bash
+npm run build
+```
+
+4. Preview production build
+
+```bash
+npm run preview
+```
+
+5. Run lint
+
+```bash
+npm run lint
+```
+
+### Project Structure
+
+```text
+flypy-typing/
+├─ public/                 # static assets
+├─ src/
+│  ├─ components/          # UI components (Layout / TypingArea / KeyboardMap / Stats / Settings)
+│  ├─ data/                # static dictionaries and Flypy mappings
+│  ├─ stores/              # Zustand stores
+│  ├─ utils/               # pure helpers (pinyin, input checks, sound, etc.)
+│  ├─ App.tsx              # app root
+│  └─ main.tsx             # entry point
+├─ package.json
+└─ README.md
+```
+
+### Tech Stack
+
+- React 19
+- TypeScript 5
+- Vite 7
+- Zustand 5
+- Tailwind CSS 4
+- pinyin-pro
+
+### Data & Config
+
+- Settings storage key: `flypy-settings`
+- History storage key: `flypy-history`
+- Dictionary/mapping source: `src/data/flypy.ts`
+
+### References
+
+- Flypy official site: [https://flypy.cc/](https://flypy.cc/)
+- Rime input method: [https://rime.im/](https://rime.im/)
+
+### License
+
+This project is licensed under the [MIT License](./LICENSE).
