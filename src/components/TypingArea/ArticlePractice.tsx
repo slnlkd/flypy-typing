@@ -189,6 +189,7 @@ export function ArticlePractice() {
         style={{
           backgroundColor: 'var(--bg-secondary)',
           border: '1px solid var(--border)',
+          paddingTop: showPinyin ? '36px' : undefined,
         }}
         onClick={() => hiddenInputRef.current?.focus()}
       >
@@ -266,9 +267,11 @@ export function ArticlePractice() {
                   return (
                     <div key={charIdx} className="relative flex flex-col items-center w-full">
                       {isCurrent && showPinyin && (
-                        <div className="absolute -top-6 whitespace-nowrap px-1.5 py-0.5 rounded text-xs font-bold text-white shadow-sm animate-in fade-in slide-in-from-bottom-1 duration-200"
-                             style={{ backgroundColor: 'var(--accent)' }}>
-                          {tc.pinyinChar.pinyinWithTone}
+                        <div
+                          className="absolute -top-5 whitespace-nowrap px-1 py-0.5 rounded text-[10px] font-semibold text-white shadow-sm animate-in fade-in slide-in-from-bottom-1 duration-200"
+                          style={{ backgroundColor: 'var(--accent)' }}
+                        >
+                          {tc.pinyinChar.flypyCode.toUpperCase()}
                         </div>
                       )}
 

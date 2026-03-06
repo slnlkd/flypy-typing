@@ -49,6 +49,7 @@ export function CharPractice() {
   }
 
   const currentChar = chars[currentIndex];
+  const displayCharSize = Math.min(fontSize * 1.7, 58);
   const visibleRange = 6;
   const start = Math.max(0, currentIndex - visibleRange);
   const end = Math.min(chars.length, currentIndex + visibleRange + 1);
@@ -86,7 +87,7 @@ export function CharPractice() {
 
       {/* 核心专注区 */}
       <div
-        className="relative flex flex-col items-center justify-center gap-1.5 w-full flex-1 min-h-0 py-2 px-4 rounded-xl"
+        className="relative flex flex-col items-center justify-center gap-1.5 w-full flex-1 min-h-0 py-3 px-4 rounded-xl overflow-hidden"
         style={{
           backgroundColor: 'var(--bg-secondary)',
           border: '1px solid var(--border)',
@@ -103,7 +104,8 @@ export function CharPractice() {
           <div
             className="font-bold transition-all duration-300 transform"
             style={{
-              fontSize: `${fontSize * 2}px`,
+              fontSize: `${displayCharSize}px`,
+              lineHeight: 1.1,
               color: currentChar?.status === 'wrong' ? 'var(--error)' : 'var(--text-primary)',
               transform: currentChar?.status === 'wrong' ? 'scale(1.05)' : 'scale(1)',
             }}
@@ -115,7 +117,7 @@ export function CharPractice() {
             <div className="flex items-center gap-2 px-3 py-1 rounded-lg border border-dashed transition-all duration-300"
                  style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
               <span className="text-xs font-semibold">双拼编码</span>
-              <span className="font-mono font-bold text-base" style={{ color: 'var(--text-primary)' }}>{currentChar.pinyinChar.flypyCode}</span>
+              <span className="font-mono font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{currentChar.pinyinChar.flypyCode}</span>
             </div>
           )}
         </div>

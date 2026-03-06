@@ -9,6 +9,15 @@ export interface PinyinChar {
   isChineseChar: boolean; // 是否为汉字
 }
 
+// 常见多音字在打字练习里的优先读音（偏向现代书面语常用读法）
+const commonPolyphonicOverrides: Record<string, string> = {
+  '了': 'le',
+  '着': 'zhe',
+  '得': 'de',
+  '地': 'de',
+  '的': 'de',
+};
+
 // 判断是否为汉字
 export function isChinese(char: string): boolean {
   return /[\u4e00-\u9fff]/.test(char);
@@ -31,8 +40,11 @@ export function getCharPinyin(char: string): PinyinChar {
     };
   }
 
-  const pinyinWithTone = pinyin(char, { toneType: 'symbol', type: 'array' })[0] || '';
-  const pinyinNoTone = pinyin(char, { toneType: 'none', type: 'array' })[0] || '';
+  const override = commonPolyphonicOverrides[char];
+  const pinyinNoTone = override || pinyin(char, { toneType: 'none', type: 'array' })[0] || '';
+  const pinyinWithTone = override
+    ? pinyin(override, { toneType: 'symbol', type: 'array' })[0] || override
+    : pinyin(char, { toneType: 'symbol', type: 'array' })[0] || '';
   const code = pinyinToFlypy[pinyinNoTone] || pinyinNoTone;
 
   return {
@@ -46,9 +58,36 @@ export function getCharPinyin(char: string): PinyinChar {
 
 // 将文本转换为 PinyinChar 数组（保留汉字和标点）
 export function textToPinyinChars(text: string): PinyinChar[] {
+  const chineseChars = [...text].filter((ch) => isChinese(ch));
+  const chineseText = chineseChars.join('');
+  const contextNone = chineseText
+    ? pinyin(chineseText, { toneType: 'none', type: 'array' })
+    : [];
+  const contextTone = chineseText
+    ? pinyin(chineseText, { toneType: 'symbol', type: 'array' })
+    : [];
+
   const chars: PinyinChar[] = [];
+  let zhIndex = 0;
   for (const char of text) {
-    if (isChinese(char) || isPunctuation(char)) {
+    if (isChinese(char)) {
+      const pinyinNoTone = contextNone[zhIndex];
+      const pinyinWithTone = contextTone[zhIndex];
+      zhIndex++;
+      if (pinyinNoTone && pinyinWithTone) {
+        chars.push({
+          char,
+          pinyin: pinyinNoTone,
+          pinyinWithTone,
+          flypyCode: pinyinToFlypy[pinyinNoTone] || pinyinNoTone,
+          isChineseChar: true,
+        });
+      } else {
+        chars.push(getCharPinyin(char));
+      }
+      continue;
+    }
+    if (isPunctuation(char)) {
       chars.push(getCharPinyin(char));
     }
     // 跳过其他字符（空格、换行等）
