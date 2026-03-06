@@ -1,12 +1,19 @@
 import { create } from 'zustand';
 import type { PinyinChar } from '../utils/pinyin';
 import { textToPinyinChars, checkFlypyInput, isPunctuation } from '../utils/pinyin';
-import { commonChars, pinyinToFlypy } from '../data/flypy';
+import { commonChars, commonPhrases, pinyinToFlypy } from '../data/flypy';
 import { useSettingsStore } from './settingsStore';
+import { useHistoryStore } from './historyStore';
 import { playKeySound, playCorrectSound, playErrorSound, playComboSound } from '../utils/sound';
 
-export type PracticeMode = 'char' | 'article';
+export type PracticeMode = 'char' | 'phrase' | 'article';
 export type CharStatus = 'pending' | 'current' | 'correct' | 'wrong';
+
+export interface PhraseRange {
+  text: string;
+  start: number;
+  end: number;
+}
 
 export interface TypedChar {
   pinyinChar: PinyinChar;
@@ -48,11 +55,77 @@ function getInitial(pinyin: string): string {
   return '';
 }
 
+function weightedSampleChars(
+  pool: typeof commonChars,
+  count: number,
+  wrongCounts: Record<string, number>
+) {
+  const candidates = [...pool];
+  const picked: typeof commonChars = [];
+  const target = Math.min(count, candidates.length);
+
+  while (picked.length < target && candidates.length > 0) {
+    const weights = candidates.map((item) => {
+      const wrong = wrongCounts[item.char] || 0;
+      // 错字次数越高，抽中概率越高；保留基础权重避免只刷错字
+      return 1 + Math.min(12, wrong * 2);
+    });
+    const total = weights.reduce((sum, w) => sum + w, 0);
+    let r = Math.random() * total;
+    let idx = 0;
+    for (let i = 0; i < candidates.length; i++) {
+      r -= weights[i];
+      if (r <= 0) {
+        idx = i;
+        break;
+      }
+    }
+    picked.push(candidates[idx]);
+    candidates.splice(idx, 1);
+  }
+
+  return picked;
+}
+
+function weightedSamplePhrases(
+  pool: string[],
+  count: number,
+  wrongCounts: Record<string, number>
+) {
+  const candidates = [...pool];
+  const picked: string[] = [];
+  const target = Math.min(count, candidates.length);
+
+  while (picked.length < target && candidates.length > 0) {
+    const weights = candidates.map((phrase) => {
+      const chars = [...phrase];
+      const totalWrong = chars.reduce((sum, ch) => sum + (wrongCounts[ch] || 0), 0);
+      const avgWrong = chars.length > 0 ? totalWrong / chars.length : 0;
+      return 1 + Math.min(12, avgWrong * 2);
+    });
+    const total = weights.reduce((sum, w) => sum + w, 0);
+    let r = Math.random() * total;
+    let idx = 0;
+    for (let i = 0; i < candidates.length; i++) {
+      r -= weights[i];
+      if (r <= 0) {
+        idx = i;
+        break;
+      }
+    }
+    picked.push(candidates[idx]);
+    candidates.splice(idx, 1);
+  }
+
+  return picked;
+}
+
 interface TypingState {
   mode: PracticeMode;
   setMode: (mode: PracticeMode) => void;
 
   chars: TypedChar[];
+  phraseRanges: PhraseRange[];
   currentIndex: number;
   currentInput: string;
   isStarted: boolean;
@@ -77,6 +150,7 @@ interface TypingState {
   loadChars: (pinyinChars: PinyinChar[]) => void;
   loadArticle: (text: string) => void;
   loadRandomChars: (count?: number) => void;
+  loadRandomPhrases: (count?: number) => void;
   handleKeyDown: (key: string) => void;
   handleCharInput: (input: string) => void;
   handleBackspace: () => void;
@@ -94,6 +168,7 @@ interface TypingState {
 export const useTypingStore = create<TypingState>((set, get) => ({
   mode: 'char',
   chars: [],
+  phraseRanges: [],
   currentIndex: 0,
   currentInput: '',
   isStarted: false,
@@ -114,6 +189,7 @@ export const useTypingStore = create<TypingState>((set, get) => ({
     set({
       mode,
       chars: [],
+      phraseRanges: [],
       currentIndex: 0,
       currentInput: '',
       isStarted: false,
@@ -140,6 +216,7 @@ export const useTypingStore = create<TypingState>((set, get) => ({
     }));
     set({
       chars,
+      phraseRanges: [],
       currentIndex: 0,
       currentInput: '',
       isStarted: false,
@@ -165,6 +242,7 @@ export const useTypingStore = create<TypingState>((set, get) => ({
 
   loadRandomChars: (countOverride?: number) => {
     const settings = useSettingsStore.getState();
+    const history = useHistoryStore.getState();
     const count = countOverride || settings.charCount;
     const poolSize = settings.charPool;
     const practiceType = settings.practiceType;
@@ -197,8 +275,10 @@ export const useTypingStore = create<TypingState>((set, get) => ({
     if (practiceType === 'sequential') {
       selected = pool.slice(0, count);
     } else {
-      const shuffled = [...pool].sort(() => Math.random() - 0.5);
-      selected = shuffled.slice(0, Math.min(count, shuffled.length));
+      const wrongCounts = Object.fromEntries(
+        Object.entries(history.wrongChars).map(([char, item]) => [char, item.count])
+      );
+      selected = weightedSampleChars(pool, count, wrongCounts);
     }
 
     const pinyinChars: PinyinChar[] = selected.map((c) => ({
@@ -209,6 +289,42 @@ export const useTypingStore = create<TypingState>((set, get) => ({
       isChineseChar: true,
     }));
     get().loadChars(pinyinChars);
+  },
+
+  loadRandomPhrases: (countOverride?: number) => {
+    const settings = useSettingsStore.getState();
+    const history = useHistoryStore.getState();
+    const count = countOverride || settings.phraseCount;
+    const wrongCounts = Object.fromEntries(
+      Object.entries(history.wrongChars).map(([char, item]) => [char, item.count])
+    );
+
+    const selected = settings.practiceType === 'sequential'
+      ? commonPhrases.slice(0, count)
+      : weightedSamplePhrases(commonPhrases, count, wrongCounts);
+
+    const pinyinChars: PinyinChar[] = [];
+    const phraseRanges: PhraseRange[] = [];
+
+    for (const phrase of selected) {
+      const chars = textToPinyinChars(phrase).filter((pc) => pc.isChineseChar);
+      if (chars.length === 0) continue;
+      const start = pinyinChars.length;
+      pinyinChars.push(...chars);
+      phraseRanges.push({
+        text: chars.map((c) => c.char).join(''),
+        start,
+        end: pinyinChars.length - 1,
+      });
+    }
+
+    if (pinyinChars.length === 0) {
+      get().loadRandomChars();
+      return;
+    }
+
+    get().loadChars(pinyinChars);
+    set({ phraseRanges });
   },
 
   togglePause: () => {
@@ -337,7 +453,7 @@ export const useTypingStore = create<TypingState>((set, get) => ({
         combo: 0,
       });
 
-      if (state.mode === 'char') {
+      if (state.mode !== 'article') {
         setTimeout(() => {
           const s = get();
           if (s.currentIndex === state.currentIndex && s.currentInput === newInput) {
@@ -496,6 +612,8 @@ export const useTypingStore = create<TypingState>((set, get) => ({
     const state = get();
     if (state.mode === 'char') {
       get().loadRandomChars();
+    } else if (state.mode === 'phrase') {
+      get().loadRandomPhrases();
     }
   },
 

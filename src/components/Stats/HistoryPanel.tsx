@@ -1,14 +1,16 @@
 import { useState, useMemo } from 'react';
 import { useHistoryStore } from '../../stores/historyStore';
 import { useTypingStore } from '../../stores/typingStore';
+import { useSettingsStore } from '../../stores/settingsStore';
 import { pinyinToFlypy } from '../../data/flypy';
 import type { PracticeRecord, WrongCharRecord } from '../../stores/historyStore';
 import { ConfirmDialog } from '../common/ConfirmDialog';
 
-type ModeFilter = 'all' | 'char' | 'article';
+type ModeFilter = 'all' | 'char' | 'phrase' | 'article';
 
 export function HistoryPanel({ onClose }: { onClose: () => void }) {
   const { records, getTopWrongChars, clearHistory } = useHistoryStore();
+  const { dailyGoalChars } = useSettingsStore();
   const { loadChars, setMode } = useTypingStore();
   const [tab, setTab] = useState<'records' | 'wrong' | 'trend'>('records');
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -28,6 +30,14 @@ export function HistoryPanel({ onClose }: { onClose: () => void }) {
     const today = new Date().toDateString();
     const todayRecords = records.filter((r) => new Date(r.date).toDateString() === today);
     const todayChars = todayRecords.reduce((sum, r) => sum + r.totalChars, 0);
+    const goalProgress = Math.min(100, Math.round((todayChars / dailyGoalChars) * 100));
+    const daySet = new Set(records.map((r) => new Date(r.date).toDateString()));
+    let streak = 0;
+    const cursor = new Date();
+    while (daySet.has(cursor.toDateString())) {
+      streak++;
+      cursor.setDate(cursor.getDate() - 1);
+    }
     const avgDuration = records.length > 0
       ? Math.round(records.slice(0, 10).reduce((sum, r) => sum + r.duration, 0) / count)
       : 0;
@@ -39,9 +49,11 @@ export function HistoryPanel({ onClose }: { onClose: () => void }) {
       bestSpeed: records.length > 0 ? Math.max(...records.map((r) => r.speed)) : 0,
       todayCount: todayRecords.length,
       todayChars,
+      goalProgress,
+      streak,
       avgDuration,
     };
-  }, [records]);
+  }, [records, dailyGoalChars]);
 
   const formatDuration = (sec: number) => {
     if (sec < 60) return `${sec}s`;
@@ -109,13 +121,30 @@ export function HistoryPanel({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Stats Grid */}
-        <div className="px-8 sm:px-10 pb-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="px-8 sm:px-10 pb-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <StatHeroItem label="今日练习" value={stats.todayCount} unit="次" color="var(--accent)" />
           <StatHeroItem label="今日字数" value={stats.todayChars} unit="字" color="var(--accent)" />
+          <StatHeroItem label="连续打卡" value={stats.streak} unit="天" color="var(--warning)" />
+          <StatHeroItem label="目标达成" value={`${stats.goalProgress}%`} unit="" color="var(--success)" />
           <StatHeroItem label="平均速度" value={stats.avgSpeed} unit="wpm" color="var(--text-primary)" />
           <StatHeroItem label="最高纪录" value={stats.bestSpeed} unit="wpm" color="var(--warning)" />
-          <StatHeroItem label="平均准确率" value={stats.avgAccuracy} unit="%" color="var(--success)" />
-          <StatHeroItem label="平均用时" value={formatDuration(stats.avgDuration)} unit="" color="var(--text-secondary)" />
+        </div>
+        <div className="px-8 sm:px-10 pb-6">
+          <div className="rounded-xl p-3 border" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border)' }}>
+            <div className="flex items-center justify-between text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
+              <span>每日目标 {dailyGoalChars} 字</span>
+              <span>{stats.todayChars}/{dailyGoalChars}</span>
+            </div>
+            <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--bg-card)' }}>
+              <div
+                className="h-full transition-all duration-500"
+                style={{ width: `${stats.goalProgress}%`, backgroundColor: 'var(--accent)' }}
+              />
+            </div>
+            <div className="mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+              最近10次：准确率 {stats.avgAccuracy}% · 平均用时 {formatDuration(stats.avgDuration)}
+            </div>
+          </div>
         </div>
 
         {/* Tabs & Actions */}
@@ -159,6 +188,7 @@ export function HistoryPanel({ onClose }: { onClose: () => void }) {
                 {([
                   { key: 'all' as ModeFilter, label: '全部' },
                   { key: 'char' as ModeFilter, label: '单字' },
+                  { key: 'phrase' as ModeFilter, label: '词组' },
                   { key: 'article' as ModeFilter, label: '文章' },
                 ]).map((f) => (
                   <button
@@ -248,6 +278,7 @@ function StatHeroItem({ label, value, unit, color }: { label: string; value: num
 
 function RecordItem({ record, formatDate, formatDuration }: { record: PracticeRecord; formatDate: (d: string) => string; formatDuration: (s: number) => string }) {
   const isChar = record.mode === 'char';
+  const isPhrase = record.mode === 'phrase';
   return (
     <div className="group rounded-xl p-4 border transition-shadow hover:shadow-md" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}>
       <div className="flex items-center justify-between">
@@ -255,14 +286,18 @@ function RecordItem({ record, formatDate, formatDuration }: { record: PracticeRe
           <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg border transition-transform group-hover:scale-105 ${
             isChar
               ? 'text-[var(--accent)] border-[var(--accent)]/20'
-              : 'text-[var(--success)] border-[var(--success)]/20'
+              : isPhrase
+                ? 'text-[var(--warning)] border-[var(--warning)]/20'
+                : 'text-[var(--success)] border-[var(--success)]/20'
           }`}
-            style={{ backgroundColor: isChar ? 'var(--accent-light)' : 'rgba(34,197,94,0.08)' }}
+            style={{ backgroundColor: isChar ? 'var(--accent-light)' : isPhrase ? 'rgba(245,158,11,0.08)' : 'rgba(34,197,94,0.08)' }}
           >
-            {isChar ? '单' : '文'}
+            {isChar ? '单' : isPhrase ? '词' : '文'}
           </div>
           <div className="space-y-1">
-            <div className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{isChar ? '单字高频练习' : '文章模拟练习'}</div>
+            <div className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+              {isChar ? '单字高频练习' : isPhrase ? '词组短句练习' : '文章模拟练习'}
+            </div>
             <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
               <span>{formatDate(record.date)}</span>
               <span>·</span>
@@ -490,7 +525,7 @@ function TrendChart({ records, formatDate }: { records: PracticeRecord[]; format
                   {formatDate(hoverData.date)}
                 </text>
                 <text x={tooltipX + 10} y={tooltipY + 50} fontSize="10" fill="var(--text-muted)">
-                  {hoverData.mode === 'char' ? '单字' : '文章'} · {hoverData.totalChars}字
+                  {hoverData.mode === 'char' ? '单字' : hoverData.mode === 'phrase' ? '词组' : '文章'} · {hoverData.totalChars}字
                 </text>
               </g>
             );

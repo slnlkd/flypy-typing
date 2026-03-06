@@ -1,5 +1,5 @@
 import { useSettingsStore } from '../../stores/settingsStore';
-import type { CharCount, PracticeType } from '../../stores/settingsStore';
+import type { CharCount, PhraseCount, PracticeType, TimerMode, DailyGoalChars } from '../../stores/settingsStore';
 import { setMasterVolume, playKeySound } from '../../utils/sound';
 
 export function SettingsPanel({ onClose }: { onClose: () => void }) {
@@ -12,7 +12,10 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
     soundVolume, setSoundVolume,
     fontSize, setFontSize,
     charCount, setCharCount,
+    phraseCount, setPhraseCount,
     practiceType, setPracticeType,
+    timerMode, setTimerMode,
+    dailyGoalChars, setDailyGoalChars,
   } = useSettingsStore();
 
   return (
@@ -68,6 +71,16 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
                 ]}
                 onChange={setCharCount}
               />
+              <SelectRow<PhraseCount>
+                label="词组/短句数量"
+                value={phraseCount}
+                options={[
+                  { value: 10, label: '10' },
+                  { value: 20, label: '20' },
+                  { value: 30, label: '30' },
+                ]}
+                onChange={setPhraseCount}
+              />
               <SelectRow<PracticeType>
                 label="题目生成逻辑"
                 value={practiceType}
@@ -79,6 +92,28 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
                   { value: 'final', label: '韵母' },
                 ]}
                 onChange={setPracticeType}
+              />
+              <SelectRow<TimerMode>
+                label="限时模式"
+                value={timerMode}
+                options={[
+                  { value: 'none', label: '不限时' },
+                  { value: 60, label: '60秒' },
+                  { value: 180, label: '3分钟' },
+                  { value: 300, label: '5分钟' },
+                ]}
+                onChange={setTimerMode}
+              />
+              <SelectRow<DailyGoalChars>
+                label="每日目标字数"
+                value={dailyGoalChars}
+                options={[
+                  { value: 500, label: '500字' },
+                  { value: 1000, label: '1000字' },
+                  { value: 2000, label: '2000字' },
+                  { value: 5000, label: '5000字' },
+                ]}
+                onChange={setDailyGoalChars}
               />
             </div>
           </SettingsSection>

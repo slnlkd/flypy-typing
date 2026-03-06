@@ -5,16 +5,19 @@ import { useSettingsStore } from '../../stores/settingsStore';
 import { ConfirmDialog } from '../common/ConfirmDialog';
 
 export function Header({ onShowHistory, onShowSettings }: { onShowHistory: () => void; onShowSettings: () => void }) {
-  const { mode, setMode, loadRandomChars, isStarted, isFinished } = useTypingStore();
+  const { mode, setMode, loadRandomChars, loadRandomPhrases, isStarted, isFinished } = useTypingStore();
   const { darkMode, toggleDarkMode } = useSettingsStore();
   const [pendingMode, setPendingMode] = useState<PracticeMode | null>(null);
+  const logoSrc = `${import.meta.env.BASE_URL}flypy-icon-guofeng-fan.svg`;
 
   const doModeChange = useCallback((newMode: PracticeMode) => {
     setMode(newMode);
     if (newMode === 'char') {
       loadRandomChars();
+    } else if (newMode === 'phrase') {
+      loadRandomPhrases();
     }
-  }, [setMode, loadRandomChars]);
+  }, [setMode, loadRandomChars, loadRandomPhrases]);
 
   const handleModeChange = (newMode: PracticeMode) => {
     if (newMode === mode) return;
@@ -32,13 +35,18 @@ export function Header({ onShowHistory, onShowSettings }: { onShowHistory: () =>
     >
       {/* Logo */}
       <div className="flex items-center gap-2">
-        <span className="text-xl font-bold" style={{ color: 'var(--accent)' }}>⌨</span>
+        <img
+          src={logoSrc}
+          alt="小鹤双拼练习"
+          className="w-6 h-6 rounded-md"
+        />
         <span className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>小鹤双拼练习</span>
       </div>
 
       {/* 模式切换 */}
       <div className="flex items-center gap-1 p-1 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
         <ModeButton label="单字练习" active={mode === 'char'} onClick={() => handleModeChange('char')} />
+        <ModeButton label="词组短句" active={mode === 'phrase'} onClick={() => handleModeChange('phrase')} />
         <ModeButton label="文章练习" active={mode === 'article'} onClick={() => handleModeChange('article')} />
       </div>
 

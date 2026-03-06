@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="国风折扇图标">
+  <rect x="4" y="4" width="56" height="56" rx="12" fill="#f3ead7"/>
+  <path d="M12 38c4-12 13-20 20-22 7 2 16 10 20 22-8-2-16-3-20-3s-12 1-20 3z" fill="#1f2937"/>
+  <path d="M16 38c6-2 11-2 16-2s10 0 16 2l-2 8H18z" fill="#b91c1c"/>
+  <path d="M32 16v30M25 18l4 28M39 18l-4 28M20 23l6 23M44 23l-6 23" stroke="#f3ead7" stroke-width="1.2"/>
+  <rect x="29.5" y="46" width="5" height="10" rx="2.5" fill="#7c2d12"/>
+</svg>

@@ -2,9 +2,11 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export type CharCount = 50 | 100 | 200;
+export type PhraseCount = 10 | 20 | 30;
 export type CharPool = 500;
 export type PracticeType = 'random' | 'sequential' | 'hard' | 'initial' | 'final';
 export type TimerMode = 'none' | 60 | 180 | 300;
+export type DailyGoalChars = 500 | 1000 | 2000 | 5000;
 
 interface SettingsState {
   darkMode: boolean;
@@ -17,11 +19,13 @@ interface SettingsState {
 
   // 单字练习设置
   charCount: CharCount;
+  phraseCount: PhraseCount;
   charPool: CharPool;
   practiceType: PracticeType;
 
   // 限时模式
   timerMode: TimerMode;
+  dailyGoalChars: DailyGoalChars;
 
   toggleDarkMode: () => void;
   toggleKeyboard: () => void;
@@ -31,9 +35,11 @@ interface SettingsState {
   setSoundVolume: (v: number) => void;
   setFontSize: (size: number) => void;
   setCharCount: (count: CharCount) => void;
+  setPhraseCount: (count: PhraseCount) => void;
   setCharPool: (pool: CharPool) => void;
   setPracticeType: (type: PracticeType) => void;
   setTimerMode: (mode: TimerMode) => void;
+  setDailyGoalChars: (goal: DailyGoalChars) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -48,9 +54,11 @@ export const useSettingsStore = create<SettingsState>()(
       soundVolume: 50,
 
       charCount: 50,
+      phraseCount: 20,
       charPool: 500,
       practiceType: 'random',
       timerMode: 'none',
+      dailyGoalChars: 1000,
 
       toggleDarkMode: () => {
         const newVal = !get().darkMode;
@@ -69,9 +77,11 @@ export const useSettingsStore = create<SettingsState>()(
       setSoundVolume: (v) => set({ soundVolume: v }),
       setFontSize: (size) => set({ fontSize: size }),
       setCharCount: (count) => set({ charCount: count }),
+      setPhraseCount: (count) => set({ phraseCount: count }),
       setCharPool: (pool) => set({ charPool: pool }),
       setPracticeType: (type) => set({ practiceType: type }),
       setTimerMode: (mode) => set({ timerMode: mode }),
+      setDailyGoalChars: (goal) => set({ dailyGoalChars: goal }),
     }),
     {
       name: 'flypy-settings',

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Header } from './components/Layout/Header';
 import { KeyboardMap } from './components/KeyboardMap/KeyboardMap';
 import { CharPractice } from './components/TypingArea/CharPractice';
+import { PhrasePractice } from './components/TypingArea/PhrasePractice';
 import { ArticlePractice } from './components/TypingArea/ArticlePractice';
 import { StatsBar } from './components/Stats/StatsBar';
 import { ResultPanel } from './components/Stats/ResultPanel';
@@ -41,7 +42,9 @@ function App() {
         <main className="flex-1 flex flex-col items-center gap-3 px-6 py-3 min-h-0 overflow-hidden">
           <KeyboardMap />
           <div className="w-full max-w-4xl flex-1 min-h-0 flex flex-col items-center overflow-hidden">
-            {mode === 'char' ? <CharPractice /> : <ArticlePractice />}
+            {mode === 'char' && <CharPractice />}
+            {mode === 'phrase' && <PhrasePractice />}
+            {mode === 'article' && <ArticlePractice />}
           </div>
           <StatsBar />
         </main>

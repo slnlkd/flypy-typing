@@ -4,11 +4,12 @@ import { useHistoryStore } from '../../stores/historyStore';
 import { getSpeedLevel } from '../../utils/speedLevel';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { playFinishSound } from '../../utils/sound';
+import { presetArticles } from '../../data/flypy';
 
 export function ResultPanel() {
   const {
     isFinished, mode, correctCount, wrongCount, maxCombo,
-    getSpeed, getAccuracy, getElapsedTime, chars, loadRandomChars,
+    getSpeed, getAccuracy, getElapsedTime, chars, loadRandomChars, loadRandomPhrases, loadArticle,
   } = useTypingStore();
   const { addRecord, addWrongChar } = useHistoryStore();
   const { soundEnabled } = useSettingsStore();
@@ -47,6 +48,16 @@ export function ResultPanel() {
 
   if (!isFinished) return null;
 
+  const restartPractice = () => {
+    if (mode === 'char') {
+      loadRandomChars();
+    } else if (mode === 'phrase') {
+      loadRandomPhrases();
+    } else {
+      loadArticle(presetArticles[0].content);
+    }
+  };
+
   const speed = getSpeed();
   const accuracy = getAccuracy();
   const elapsed = getElapsedTime();
@@ -59,7 +70,7 @@ export function ResultPanel() {
       className="fixed inset-0 flex items-center justify-center z-50"
       style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) loadRandomChars();
+        if (e.target === e.currentTarget) restartPractice();
       }}
     >
       <div
@@ -97,7 +108,7 @@ export function ResultPanel() {
 
         <div className="flex justify-center gap-3">
           <button
-            onClick={() => loadRandomChars()}
+            onClick={restartPractice}
             className="px-6 py-2 rounded-lg font-medium text-white cursor-pointer"
             style={{ backgroundColor: 'var(--accent)' }}
           >

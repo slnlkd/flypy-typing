@@ -4,7 +4,7 @@ import { persist } from 'zustand/middleware';
 export interface PracticeRecord {
   id: string;
   date: string;
-  mode: 'char' | 'article';
+  mode: 'char' | 'phrase' | 'article';
   speed: number;       // 字/分钟
   accuracy: number;    // 百分比
   totalChars: number;

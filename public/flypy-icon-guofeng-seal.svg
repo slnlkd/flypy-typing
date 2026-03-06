@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="国风印章图标">
+  <rect x="4" y="4" width="56" height="56" rx="12" fill="#8f1d1d"/>
+  <rect x="10" y="10" width="44" height="44" rx="8" fill="none" stroke="#f7e7c1" stroke-width="2.4"/>
+  <path d="M18 20h12v6h-6v5h10v6H18v-6h6v-5h-6z" fill="#f7e7c1"/>
+  <path d="M38 20h8v18h-8zM34 34h16v6H34z" fill="#f7e7c1"/>
+</svg>
