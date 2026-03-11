@@ -105,7 +105,51 @@ This section summarizes the latest architecture and product direction rather tha
 
 ## Preview
 
-![App Preview](./docs/preview.png)
+The repository now includes multiple screenshots. The sections below group them by user-facing workflow instead of showing a single generic preview.
+
+### 1. Main Practice Screen
+
+![Main Practice Screen](./docs/preview.png)
+
+- Shows the full working layout, including top actions, keyboard map, practice area, and bottom stats bar
+- Useful for understanding the overall page structure at a glance
+
+### 2. Practice Content View
+
+![Practice Content View](./docs/preview1.png)
+
+- Focuses more directly on the typing area and in-session visual feedback
+- Helps readers see how the central training surface is presented during practice
+
+### 3. Settings Panel
+
+![Settings Panel](./docs/settings.png)
+
+- Shows configuration options for training parameters, display preferences, sound, and theme-related choices
+- Useful for demonstrating how much of the practice experience is customizable
+
+### 4. History and Trend Panel
+
+![History Panel](./docs/history.png)
+
+- Shows practice history, trend review, and post-session analysis content
+- Highlights the longer-term feedback loop instead of only the live typing experience
+
+### 5. Login and Cloud Sync Panel
+
+![Login and Sync Panel](./docs/login.png)
+
+- Shows the email verification login flow and cloud sync entry point
+- Matches the current frontend-backend integration path in the repo
+
+### UI Areas Worth Calling Out
+
+- `KeyboardMap`: reinforces Flypy key-position memory
+- `TypingArea`: the central surface for character, phrase, and article practice
+- `StatsBar`: keeps speed, accuracy, progress, and combo visible during training
+- `SettingsPanel`: centralizes training, display, and audio preferences
+- `HistoryPanel`: supports trend review and mistake analysis after practice
+- `AuthPanel`: handles email login and cloud sync-related account actions
 
 ## Quick Start
 
