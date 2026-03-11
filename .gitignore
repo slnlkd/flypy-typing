@@ -25,6 +25,7 @@ dist-ssr
 backend/.env
 __pycache__/
 *.pyc
+*.egg-info/
 src/photo/000f2faf-644e-402d-bb6f-fa59b5deec15.png
 src/photo/06e8bc3d-9bdf-472c-8136-8afc83d7ecf1.png
 src/photo/93852e38-ee8d-48eb-be71-3f2c213038b8.png
