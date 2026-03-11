@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTypingStore } from '../../stores/typingStore';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { useArticleStore } from '../../stores/articleStore';
 import { presetArticles } from '../../data/flypy';
 
 export function ArticlePractice() {
@@ -16,6 +17,7 @@ export function ArticlePractice() {
     getProgress,
   } = useTypingStore();
   const { showPinyin, fontSize } = useSettingsStore();
+  const { cloudArticles } = useArticleStore();
 
   const [showImport, setShowImport] = useState(false);
   const [importText, setImportText] = useState('');
@@ -27,11 +29,21 @@ export function ArticlePractice() {
   const containerRef = useRef<HTMLDivElement>(null);
   const hiddenInputRef = useRef<HTMLInputElement>(null);
 
+  const articles = cloudArticles.length > 0 ? cloudArticles : presetArticles.map((article, index) => ({
+    id: `local-${index}`,
+    title: article.title,
+    category: '内置',
+    difficulty: 'medium',
+    tags: [],
+    content: article.content,
+    updatedAt: new Date().toISOString(),
+  }));
+
   useEffect(() => {
     if (chars.length === 0) {
-      loadArticle(presetArticles[0].content);
+      loadArticle(articles[0]?.content || presetArticles[0].content);
     }
-  }, [chars.length, loadArticle]);
+  }, [articles, chars.length, loadArticle]);
 
   useEffect(() => {
     if (!showImport && hiddenInputRef.current) {
@@ -87,13 +99,13 @@ export function ArticlePractice() {
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      const text = ev.target?.result as string;
+    reader.onload = (loadEvent) => {
+      const text = loadEvent.target?.result as string;
       if (text) {
         loadArticle(text.trim());
         setShowImport(false);
@@ -106,8 +118,8 @@ export function ArticlePractice() {
   const progress = getProgress();
 
   const lines: (typeof chars)[] = [];
-  for (let i = 0; i < chars.length; i += charsPerLine) {
-    lines.push(chars.slice(i, i + charsPerLine));
+  for (let index = 0; index < chars.length; index += charsPerLine) {
+    lines.push(chars.slice(index, index + charsPerLine));
   }
 
   return (
@@ -122,9 +134,9 @@ export function ArticlePractice() {
       )}
       <div className="flex items-center gap-2 px-2 shrink-0 min-h-[40px]">
         <div className="flex gap-1.5 flex-wrap flex-1">
-          {presetArticles.map((article, i) => (
+          {articles.map((article) => (
             <button
-              key={i}
+              key={article.id}
               onClick={() => {
                 loadArticle(article.content);
                 setShowImport(false);
@@ -137,9 +149,6 @@ export function ArticlePractice() {
         </div>
 
         <button onClick={() => setShowImport(true)} className="btn-primary shrink-0">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <path d="M8 3v10M3 8h10" />
-          </svg>
           导入文章
         </button>
       </div>
@@ -156,7 +165,7 @@ export function ArticlePractice() {
           <textarea
             ref={textareaRef}
             value={importText}
-            onChange={(e) => setImportText(e.target.value)}
+            onChange={(event) => setImportText(event.target.value)}
             placeholder="粘贴文章内容..."
             className="w-full h-32 p-4 rounded-lg resize-none text-sm leading-relaxed"
             style={{
@@ -209,37 +218,37 @@ export function ArticlePractice() {
             zIndex: -1,
           }}
           onCompositionStart={() => setIsComposing(true)}
-          onCompositionEnd={(e) => {
+          onCompositionEnd={(event) => {
             setIsComposing(false);
-            const value = (e.target as HTMLInputElement).value;
+            const value = (event.target as HTMLInputElement).value;
             if (value) {
               handleCharInput(value);
-              (e.target as HTMLInputElement).value = '';
+              (event.target as HTMLInputElement).value = '';
             }
           }}
-          onInput={(e) => {
+          onInput={(event) => {
             if (isComposing) return;
-            const target = e.target as HTMLInputElement;
+            const target = event.target as HTMLInputElement;
             const value = target.value;
             if (value) {
               handleCharInput(value);
               target.value = '';
             }
           }}
-          onKeyDown={(e) => {
-            if (e.ctrlKey || e.metaKey) return;
+          onKeyDown={(event) => {
+            if (event.ctrlKey || event.metaKey) return;
             if (isPaused) {
-              if (e.key === ' ' || e.key === 'Escape') {
-                e.preventDefault();
+              if (event.key === ' ' || event.key === 'Escape') {
+                event.preventDefault();
                 togglePause();
               }
               return;
             }
-            if (e.key === 'Escape') {
-              loadArticle(presetArticles[0].content);
+            if (event.key === 'Escape') {
+              loadArticle(articles[0]?.content || presetArticles[0].content);
             }
-            if (e.key === 'Backspace' && !isComposing) {
-              e.preventDefault();
+            if (event.key === 'Backspace' && !isComposing) {
+              event.preventDefault();
               handleBackspace();
             }
           }}

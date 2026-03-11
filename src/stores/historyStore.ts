@@ -5,13 +5,13 @@ export interface PracticeRecord {
   id: string;
   date: string;
   mode: 'char' | 'phrase' | 'article';
-  speed: number;       // 字/分钟
-  accuracy: number;    // 百分比
+  speed: number;
+  accuracy: number;
   totalChars: number;
   correctChars: number;
   wrongChars: number;
   maxCombo: number;
-  duration: number;    // 秒
+  duration: number;
 }
 
 export interface WrongCharRecord {
@@ -24,12 +24,34 @@ export interface WrongCharRecord {
 interface HistoryState {
   records: PracticeRecord[];
   wrongChars: Record<string, WrongCharRecord>;
-
-  addRecord: (record: Omit<PracticeRecord, 'id' | 'date'>) => void;
+  addRecord: (record: Omit<PracticeRecord, 'id' | 'date'>) => PracticeRecord;
   addWrongChar: (char: string, pinyin: string, flypyCode: string) => void;
   clearHistory: () => void;
   getRecentRecords: (count?: number) => PracticeRecord[];
   getTopWrongChars: (count?: number) => WrongCharRecord[];
+  replaceRecords: (records: PracticeRecord[]) => void;
+  replaceWrongChars: (wrongChars: WrongCharRecord[]) => void;
+}
+
+function dedupeRecords(records: PracticeRecord[]) {
+  const map = new Map<string, PracticeRecord>();
+  records.forEach((record) => {
+    const key = [
+      record.date,
+      record.mode,
+      record.speed,
+      record.accuracy,
+      record.totalChars,
+      record.correctChars,
+      record.wrongChars,
+      record.maxCombo,
+      record.duration,
+    ].join('|');
+    map.set(key, record);
+  });
+  return Array.from(map.values())
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 100);
 }
 
 export const useHistoryStore = create<HistoryState>()(
@@ -45,8 +67,9 @@ export const useHistoryStore = create<HistoryState>()(
           date: new Date().toISOString(),
         };
         set((state) => ({
-          records: [newRecord, ...state.records].slice(0, 100), // 最多保留100条
+          records: dedupeRecords([newRecord, ...state.records]),
         }));
+        return newRecord;
       },
 
       addWrongChar: (char, pinyin, flypyCode) => {
@@ -68,15 +91,19 @@ export const useHistoryStore = create<HistoryState>()(
 
       clearHistory: () => set({ records: [], wrongChars: {} }),
 
-      getRecentRecords: (count = 20) => {
-        return get().records.slice(0, count);
-      },
+      getRecentRecords: (count = 20) => get().records.slice(0, count),
 
-      getTopWrongChars: (count = 20) => {
-        return Object.values(get().wrongChars)
+      getTopWrongChars: (count = 20) =>
+        Object.values(get().wrongChars)
           .sort((a, b) => b.count - a.count)
-          .slice(0, count);
-      },
+          .slice(0, count),
+
+      replaceRecords: (records) => set({ records: dedupeRecords(records) }),
+
+      replaceWrongChars: (wrongChars) =>
+        set({
+          wrongChars: Object.fromEntries(wrongChars.map((item) => [item.char, item])),
+        }),
     }),
     { name: 'flypy-history' }
   )

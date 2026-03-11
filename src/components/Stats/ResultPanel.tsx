@@ -5,6 +5,8 @@ import { getSpeedLevel } from '../../utils/speedLevel';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { playFinishSound } from '../../utils/sound';
 import { presetArticles } from '../../data/flypy';
+import { useAuthStore } from '../../stores/authStore';
+import { batchSyncWrongChars, savePracticeRecord } from '../../api/client';
 
 export function ResultPanel() {
   const {
@@ -13,6 +15,7 @@ export function ResultPanel() {
   } = useTypingStore();
   const { addRecord, addWrongChar } = useHistoryStore();
   const { soundEnabled } = useSettingsStore();
+  const { token } = useAuthStore();
   const savedRef = useRef(false);
 
   useEffect(() => {
@@ -24,27 +27,33 @@ export function ResultPanel() {
 
       if (soundEnabled) playFinishSound();
 
-      addRecord({
-        mode,
-        speed,
-        accuracy,
-        totalChars: correctCount + wrongCount,
-        correctChars: correctCount,
-        wrongChars: wrongCount,
-        maxCombo,
-        duration,
-      });
+      if (token) {
+        const newRecord = addRecord({
+          mode,
+          speed,
+          accuracy,
+          totalChars: correctCount + wrongCount,
+          correctChars: correctCount,
+          wrongChars: wrongCount,
+          maxCombo,
+          duration,
+        });
 
-      chars.forEach((tc) => {
-        if (tc.status === 'wrong') {
-          addWrongChar(tc.pinyinChar.char, tc.pinyinChar.pinyin, tc.pinyinChar.flypyCode);
-        }
-      });
+        chars.forEach((tc) => {
+          if (tc.status === 'wrong') {
+            addWrongChar(tc.pinyinChar.char, tc.pinyinChar.pinyin, tc.pinyinChar.flypyCode);
+          }
+        });
+
+        void savePracticeRecord(token, newRecord).catch(() => undefined);
+        const latestWrongChars = Object.values(useHistoryStore.getState().wrongChars);
+        void batchSyncWrongChars(token, latestWrongChars).catch(() => undefined);
+      }
     }
     if (!isFinished) {
       savedRef.current = false;
     }
-  }, [isFinished, mode, correctCount, wrongCount, maxCombo, chars, getSpeed, getAccuracy, getElapsedTime, addRecord, addWrongChar, soundEnabled]);
+  }, [isFinished, mode, correctCount, wrongCount, maxCombo, chars, getSpeed, getAccuracy, getElapsedTime, addRecord, addWrongChar, soundEnabled, token]);
 
   if (!isFinished) return null;
 
@@ -84,7 +93,6 @@ export function ResultPanel() {
           练习完成！
         </h2>
 
-        {/* 速度等级 */}
         <div className="flex flex-col items-center mb-6">
           <div
             className="text-4xl font-bold mt-2 mb-1"

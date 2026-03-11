@@ -20,19 +20,20 @@ export function PhrasePractice() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      const key = typeof e.key === 'string' ? e.key : '';
       if (e.ctrlKey || e.metaKey) return;
       if (isPaused) {
-        if (e.key === ' ' || e.key === 'Escape') {
+        if (key === ' ' || key === 'Escape') {
           e.preventDefault();
           togglePause();
         }
         return;
       }
-      if (e.key === 'Backspace' || (e.key.length === 1 && /[a-zA-Z]/.test(e.key))) {
+      if (key === 'Backspace' || (key.length === 1 && /[a-zA-Z]/.test(key))) {
         e.preventDefault();
-        handleKeyDown(e.key);
+        handleKeyDown(key);
       }
-      if (e.key === 'Escape') {
+      if (key === 'Escape') {
         if (isStarted && !isFinished) {
           setShowResetConfirm(true);
         } else {
