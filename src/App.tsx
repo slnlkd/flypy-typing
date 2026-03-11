@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Header } from './components/Layout/Header';
 import { KeyboardMap } from './components/KeyboardMap/KeyboardMap';
 import { CharPractice } from './components/TypingArea/CharPractice';
@@ -8,19 +8,114 @@ import { StatsBar } from './components/Stats/StatsBar';
 import { ResultPanel } from './components/Stats/ResultPanel';
 import { HistoryPanel } from './components/Stats/HistoryPanel';
 import { SettingsPanel } from './components/Settings/SettingsPanel';
+import { AuthPanel } from './components/Auth/AuthPanel';
+import { ConfirmDialog } from './components/common/ConfirmDialog';
 import { useTypingStore } from './stores/typingStore';
-import { useSettingsStore } from './stores/settingsStore';
+import { applyDarkModeClass, getSettingsSnapshot, useSettingsStore } from './stores/settingsStore';
+import { useHistoryStore } from './stores/historyStore';
+import { useAuthStore } from './stores/authStore';
+import { useArticleStore } from './stores/articleStore';
+import {
+  batchSyncPracticeRecords,
+  batchSyncWrongChars,
+  fetchCloudArticles,
+  fetchCloudSettings,
+  fetchMe,
+  logout,
+  saveCloudSettings,
+} from './api/client';
 import { setMasterVolume } from './utils/sound';
 
 function App() {
   const { mode, isFinished } = useTypingStore();
   const [showHistory, setShowHistory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const { soundVolume } = useSettingsStore();
+  const [showAuth, setShowAuth] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const settingsStore = useSettingsStore();
+  const settingsSnapshot = useMemo(() => getSettingsSnapshot(settingsStore), [settingsStore]);
+  const { soundVolume } = settingsStore;
+  const { records, wrongChars, replaceRecords, replaceWrongChars } = useHistoryStore();
+  const { token, user, clearSession, setSession } = useAuthStore();
+  const { setCloudArticles } = useArticleStore();
+  const syncedTokenRef = useRef<string | null>(null);
 
   useEffect(() => {
     setMasterVolume(soundVolume / 100);
   }, [soundVolume]);
+
+  useEffect(() => {
+    applyDarkModeClass(settingsStore.darkMode);
+  }, [settingsStore.darkMode]);
+
+  useEffect(() => {
+    fetchCloudArticles()
+      .then((result) => setCloudArticles(result.articles))
+      .catch(() => setCloudArticles([]));
+  }, [setCloudArticles]);
+
+  useEffect(() => {
+    if (!token) return;
+    if (syncedTokenRef.current === token) return;
+
+    let active = true;
+    syncedTokenRef.current = token;
+
+    void (async () => {
+      try {
+        const [{ user: me }, { settings: remoteSettings }, syncedRecords, syncedWrongChars] = await Promise.all([
+          fetchMe(token),
+          fetchCloudSettings(token),
+          batchSyncPracticeRecords(token, records),
+          batchSyncWrongChars(token, Object.values(wrongChars)),
+        ]);
+        if (!active) return;
+        setSession(token, me);
+        useSettingsStore.getState().applySnapshot(remoteSettings);
+        replaceRecords(syncedRecords.records);
+        replaceWrongChars(syncedWrongChars.wrongChars);
+      } catch (error) {
+        syncedTokenRef.current = null;
+        clearSession();
+        window.alert(error instanceof Error ? error.message : '云端同步失败，请检查后端服务。');
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [clearSession, records, replaceRecords, replaceWrongChars, setSession, token, wrongChars]);
+
+  useEffect(() => {
+    if (!token || !user) return;
+    const timer = window.setTimeout(() => {
+      void saveCloudSettings(token, settingsSnapshot).catch(() => undefined);
+    }, 500);
+    return () => window.clearTimeout(timer);
+  }, [settingsSnapshot, token, user]);
+
+  const handleAuthAction = async () => {
+    if (!token) {
+      setShowAuth(true);
+      return;
+    }
+
+    setShowLogoutConfirm(true);
+  };
+
+  const handleConfirmLogout = async () => {
+    try {
+      if (token) {
+        await logout(token);
+      }
+    } finally {
+      syncedTokenRef.current = null;
+      clearSession();
+      replaceRecords([]);
+      replaceWrongChars([]);
+      window.location.reload();
+    }
+  };
 
   return (
     <div
@@ -37,6 +132,7 @@ function App() {
         <Header
           onShowHistory={() => setShowHistory(true)}
           onShowSettings={() => setShowSettings(true)}
+          onShowAuth={() => { void handleAuthAction(); }}
         />
 
         <main className="flex-1 flex flex-col items-center gap-3 px-6 py-3 min-h-0 overflow-hidden">
@@ -79,6 +175,19 @@ function App() {
       {isFinished && <ResultPanel />}
       {showHistory && <HistoryPanel onClose={() => setShowHistory(false)} />}
       {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
+      {showAuth && <AuthPanel onClose={() => setShowAuth(false)} />}
+      <ConfirmDialog
+        open={showLogoutConfirm}
+        title="退出登录"
+        message="确认退出当前云端账号吗？退出后会清除本机登录态并刷新页面。"
+        confirmText="确认退出"
+        variant="danger"
+        onConfirm={() => {
+          setShowLogoutConfirm(false);
+          void handleConfirmLogout();
+        }}
+        onCancel={() => setShowLogoutConfirm(false)}
+      />
     </div>
   );
 }
