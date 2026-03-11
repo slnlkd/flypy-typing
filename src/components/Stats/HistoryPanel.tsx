@@ -1,7 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useHistoryStore } from '../../stores/historyStore';
 import { useTypingStore } from '../../stores/typingStore';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { useAuthStore } from '../../stores/authStore';
 import { pinyinToFlypy } from '../../data/flypy';
 import type { PracticeRecord, WrongCharRecord } from '../../stores/historyStore';
 import { ConfirmDialog } from '../common/ConfirmDialog';
@@ -12,6 +13,7 @@ export function HistoryPanel({ onClose }: { onClose: () => void }) {
   const { records, getTopWrongChars, clearHistory } = useHistoryStore();
   const { dailyGoalChars } = useSettingsStore();
   const { loadChars, setMode } = useTypingStore();
+  const { user } = useAuthStore();
   const [tab, setTab] = useState<'records' | 'wrong' | 'trend'>('records');
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [modeFilter, setModeFilter] = useState<ModeFilter>('all');
@@ -91,11 +93,21 @@ export function HistoryPanel({ onClose }: { onClose: () => void }) {
     return { high, mid, low };
   }, [topWrongChars]);
 
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !showClearConfirm) {
+        event.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handler, true);
+    return () => window.removeEventListener('keydown', handler, true);
+  }, [onClose, showClearConfirm]);
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-300"
       style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
         className="w-full max-w-4xl max-h-[92vh] overflow-hidden rounded-2xl flex flex-col shadow-lg animate-in zoom-in-95 slide-in-from-bottom-4 duration-300"
@@ -181,7 +193,9 @@ export function HistoryPanel({ onClose }: { onClose: () => void }) {
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto px-8 sm:px-10 pt-5 pb-8 custom-scrollbar" role="tabpanel">
-          {tab === 'records' ? (
+          {!user ? (
+            <EmptyState message="请先登录后再查看练习历史与易错统计" />
+          ) : tab === 'records' ? (
             <>
               {/* Mode filter */}
               <div className="flex gap-2 mb-4">

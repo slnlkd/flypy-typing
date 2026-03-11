@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useSettingsStore } from '../../stores/settingsStore';
 import type { CharCount, PhraseCount, PracticeType, TimerMode, DailyGoalChars } from '../../stores/settingsStore';
 import { setMasterVolume, playKeySound } from '../../utils/sound';
@@ -18,11 +19,21 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
     dailyGoalChars, setDailyGoalChars,
   } = useSettingsStore();
 
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handler, true);
+    return () => window.removeEventListener('keydown', handler, true);
+  }, [onClose]);
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-300"
       style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
         className="w-full max-w-3xl max-h-[92vh] overflow-hidden rounded-2xl flex flex-col shadow-lg animate-in zoom-in-95 slide-in-from-bottom-4 duration-300"
