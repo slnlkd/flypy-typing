@@ -31,6 +31,8 @@
 - 支持练习历史记录与高频错字统计
 - 支持键位图高亮、拼音显示、字号、音效音量等个性化设置
 - 本地持久化设置与历史数据（基于 Zustand Persist）
+- 支持演示版云同步：邮箱验证码登录、设置同步、练习记录同步、错字本同步
+- 支持云端文章列表，服务不可用时自动回退本地预设文章
 
 ## 界面预览
 
@@ -44,25 +46,31 @@
 npm install
 ```
 
-2. 启动开发环境
+2. 启动云同步后端（新终端）
+
+```bash
+npm run dev:server
+```
+
+3. 启动开发环境
 
 ```bash
 npm run dev
 ```
 
-3. 构建生产版本
+4. 构建生产版本
 
 ```bash
 npm run build
 ```
 
-4. 本地预览构建结果
+5. 本地预览构建结果
 
 ```bash
 npm run preview
 ```
 
-5. 代码检查
+6. 代码检查
 
 ```bash
 npm run lint
@@ -72,14 +80,17 @@ npm run lint
 
 1. 打开页面后，选择练习模式（单字或文章）。
 2. 根据需要调整练习参数（字数、出题模式、限时模式、音效等）。
-3. 直接在键盘输入即可开始。
-4. 练习结束后查看结果面板，并在历史记录中观察长期趋势。
+3. 点击右上角“登录同步”可使用演示验证码登录，验证码会直接显示在弹窗内。
+4. 直接在键盘输入即可开始。
+5. 练习结束后查看结果面板，并在历史记录中观察长期趋势。
 
 ## 项目结构
 
 ```text
 flypy-typing/
 ├─ public/                 # 静态资源
+├─ backend/                # 正式 FastAPI 后端（PostgreSQL / Redis / Celery / AI 预留）
+├─ server/                 # 旧 Node 演示后端（临时原型）
 ├─ src/
 │  ├─ components/          # UI 组件（Layout / TypingArea / KeyboardMap / Stats / Settings）
 │  ├─ data/                # 静态字典数据（flypy 映射等）
@@ -96,6 +107,8 @@ flypy-typing/
 - React 19
 - TypeScript 5
 - Vite 7
+- FastAPI（正式后端骨架）
+- Node HTTP Server（零依赖）
 - Zustand 5
 - Tailwind CSS 4
 - pinyin-pro
@@ -104,6 +117,9 @@ flypy-typing/
 
 - 练习设置存储于本地：`flypy-settings`
 - 历史记录与错字统计存储于本地：`flypy-history`
+- 登录态存储于本地：`flypy-auth`
+- 云端演示数据存储于：`server/data/db.json`
+- 正式后端说明见：`backend/README.md`
 - 题库与编码映射位于：`src/data/flypy.ts`
 
 ## 致谢与参考

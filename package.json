@@ -5,9 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:server": "node server/index.mjs",
+    "backend:install": "pip install -e ./backend[ai]",
+    "backend:dev": "uvicorn app.main:app --app-dir backend --reload --host 0.0.0.0 --port 8000",
+    "backend:migrate": "alembic -c backend/alembic.ini upgrade head",
+    "backend:compose": "docker compose -f backend/docker-compose.backend.yml up -d",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "server": "node server/index.mjs"
   },
   "dependencies": {
     "pinyin-pro": "^3.28.0",
