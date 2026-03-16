@@ -19,7 +19,7 @@ export interface CloudArticle {
   updatedAt: string;
 }
 
-const API_BASE = '/api';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '');
 const DEMO_STORAGE_KEY = 'flypy-cloud-demo';
 const ENABLE_DEMO_FALLBACK = import.meta.env.VITE_ENABLE_DEMO_FALLBACK === 'true';
 
