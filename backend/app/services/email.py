@@ -1,5 +1,6 @@
 import asyncio
 import smtplib
+import socket
 import ssl
 from email.message import EmailMessage
 
@@ -8,6 +9,40 @@ from app.core.config import settings
 
 class EmailDeliveryError(Exception):
     pass
+
+
+def _create_ipv4_connection(host: str, port: int, timeout: int | float) -> socket.socket:
+    last_error: OSError | None = None
+    addresses = socket.getaddrinfo(host, port, family=socket.AF_INET, type=socket.SOCK_STREAM)
+
+    for family, socktype, proto, _, sockaddr in addresses:
+        sock = socket.socket(family, socktype, proto)
+        try:
+            sock.settimeout(timeout)
+            sock.connect(sockaddr)
+            return sock
+        except OSError as exc:
+            last_error = exc
+            sock.close()
+
+    if last_error is not None:
+        raise last_error
+    raise OSError(f"无法解析 SMTP IPv4 地址: {host}")
+
+
+class IPv4SMTP(smtplib.SMTP):
+    def _get_socket(self, host: str, port: int, timeout: int | float):  # type: ignore[override]
+        if timeout is not None and not timeout:
+            raise ValueError("Non-blocking socket (timeout=0) is not supported")
+        return _create_ipv4_connection(host, port, timeout)
+
+
+class IPv4SMTP_SSL(smtplib.SMTP_SSL):
+    def _get_socket(self, host: str, port: int, timeout: int | float):  # type: ignore[override]
+        if timeout is not None and not timeout:
+            raise ValueError("Non-blocking socket (timeout=0) is not supported")
+        sock = _create_ipv4_connection(host, port, timeout)
+        return self.context.wrap_socket(sock, server_hostname=host)
 
 
 def _build_login_code_message(to_email: str, code: str) -> EmailMessage:
@@ -34,13 +69,13 @@ def _send_message_sync(message: EmailMessage) -> None:
 
     try:
         if settings.smtp_use_ssl:
-            with smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port, timeout=timeout, context=context) as server:
+            with IPv4SMTP_SSL(settings.smtp_host, settings.smtp_port, timeout=timeout, context=context) as server:
                 if settings.smtp_username:
                     server.login(settings.smtp_username, settings.smtp_password)
                 server.send_message(message)
             return
 
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=timeout) as server:
+        with IPv4SMTP(settings.smtp_host, settings.smtp_port, timeout=timeout) as server:
             server.ehlo()
             if settings.smtp_use_tls:
                 server.starttls(context=context)
