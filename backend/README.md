@@ -57,6 +57,14 @@ SMTP_USE_TLS=true
 SMTP_USE_SSL=false
 SMTP_TIMEOUT_SECONDS=15
 SMTP_SUBJECT_PREFIX=[Flypy]
+SMTP_FALLBACK_ENABLED=false
+SMTP_FALLBACK_HOST=
+SMTP_FALLBACK_PORT=587
+SMTP_FALLBACK_USERNAME=
+SMTP_FALLBACK_PASSWORD=
+SMTP_FALLBACK_FROM=
+SMTP_FALLBACK_USE_TLS=true
+SMTP_FALLBACK_USE_SSL=false
 ```
 
 Docker 本地开发会直接读取 `backend/.env`，修改后需要重启后端容器：
@@ -70,6 +78,7 @@ docker compose -f backend/docker-compose.backend.yml up -d --build backend
 - `587` 端口通常配 `SMTP_USE_TLS=true`
 - `465` 端口通常配 `SMTP_USE_SSL=true`
 - `SMTP_PASSWORD` 一般填邮箱授权码，不是网页登录密码
+- 如果主 SMTP 不稳定，可配置 `SMTP_FALLBACK_*` 作为备用线路，发送失败时会自动重试备用服务
 
 ## 文档
 

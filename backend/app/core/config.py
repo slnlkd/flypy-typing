@@ -1,7 +1,20 @@
+from dataclasses import dataclass
 from functools import lru_cache
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+@dataclass(frozen=True)
+class SMTPProviderConfig:
+    name: str
+    host: str
+    port: int
+    username: str
+    password: str
+    from_email: str
+    use_tls: bool
+    use_ssl: bool
 
 
 class Settings(BaseSettings):
@@ -35,6 +48,14 @@ class Settings(BaseSettings):
     smtp_use_ssl: bool = Field(default=False, alias="SMTP_USE_SSL")
     smtp_timeout_seconds: int = Field(default=15, alias="SMTP_TIMEOUT_SECONDS")
     smtp_subject_prefix: str = Field(default="[Flypy] ", alias="SMTP_SUBJECT_PREFIX")
+    smtp_fallback_enabled: bool = Field(default=False, alias="SMTP_FALLBACK_ENABLED")
+    smtp_fallback_host: str = Field(default="", alias="SMTP_FALLBACK_HOST")
+    smtp_fallback_port: int = Field(default=587, alias="SMTP_FALLBACK_PORT")
+    smtp_fallback_username: str = Field(default="", alias="SMTP_FALLBACK_USERNAME")
+    smtp_fallback_password: str = Field(default="", alias="SMTP_FALLBACK_PASSWORD")
+    smtp_fallback_from: str = Field(default="", alias="SMTP_FALLBACK_FROM")
+    smtp_fallback_use_tls: bool = Field(default=True, alias="SMTP_FALLBACK_USE_TLS")
+    smtp_fallback_use_ssl: bool = Field(default=False, alias="SMTP_FALLBACK_USE_SSL")
 
     object_storage_endpoint: str = Field(default="", alias="OBJECT_STORAGE_ENDPOINT")
     object_storage_bucket: str = Field(default="", alias="OBJECT_STORAGE_BUCKET")
@@ -52,6 +73,40 @@ class Settings(BaseSettings):
     @property
     def database_url_sync(self) -> str:
         return self.database_url.replace("+asyncpg", "+psycopg")
+
+    @property
+    def smtp_providers(self) -> list[SMTPProviderConfig]:
+        providers: list[SMTPProviderConfig] = []
+
+        if self.smtp_enabled and self.smtp_host and self.smtp_from:
+            providers.append(
+                SMTPProviderConfig(
+                    name="primary",
+                    host=self.smtp_host,
+                    port=self.smtp_port,
+                    username=self.smtp_username,
+                    password=self.smtp_password,
+                    from_email=self.smtp_from,
+                    use_tls=self.smtp_use_tls,
+                    use_ssl=self.smtp_use_ssl,
+                )
+            )
+
+        if self.smtp_enabled and self.smtp_fallback_enabled and self.smtp_fallback_host:
+            providers.append(
+                SMTPProviderConfig(
+                    name="fallback",
+                    host=self.smtp_fallback_host,
+                    port=self.smtp_fallback_port,
+                    username=self.smtp_fallback_username,
+                    password=self.smtp_fallback_password,
+                    from_email=self.smtp_fallback_from or self.smtp_from,
+                    use_tls=self.smtp_fallback_use_tls,
+                    use_ssl=self.smtp_fallback_use_ssl,
+                )
+            )
+
+        return providers
 
 
 @lru_cache

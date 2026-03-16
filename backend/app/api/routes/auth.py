@@ -51,7 +51,7 @@ async def send_login_code(payload: SendCodeRequest, db: AsyncSession = Depends(g
     code = f"{randint(100000, 999999)}"
     now = datetime.now(UTC)
 
-    if settings.smtp_enabled and (not settings.smtp_host or not settings.smtp_from):
+    if settings.smtp_enabled and not settings.smtp_providers:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="SMTP 配置不完整")
 
     await db.execute(delete(EmailLoginCode).where(EmailLoginCode.email == payload.email))

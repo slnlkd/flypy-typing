@@ -5,7 +5,7 @@ import socket
 import ssl
 from email.message import EmailMessage
 
-from app.core.config import settings
+from app.core.config import SMTPProviderConfig, settings
 
 logger = logging.getLogger(__name__)
 
@@ -48,10 +48,10 @@ class IPv4SMTP_SSL(smtplib.SMTP_SSL):
         return self.context.wrap_socket(sock, server_hostname=host)
 
 
-def _build_login_code_message(to_email: str, code: str) -> EmailMessage:
+def _build_login_code_message(provider: SMTPProviderConfig, to_email: str, code: str) -> EmailMessage:
     message = EmailMessage()
     message["Subject"] = f"{settings.smtp_subject_prefix}登录验证码"
-    message["From"] = settings.smtp_from
+    message["From"] = provider.from_email
     message["To"] = to_email
     message.set_content(
         (
@@ -66,31 +66,40 @@ def _build_login_code_message(to_email: str, code: str) -> EmailMessage:
     return message
 
 
-def _send_message_sync(message: EmailMessage) -> None:
+def _send_message_sync(provider: SMTPProviderConfig, message: EmailMessage) -> None:
     timeout = settings.smtp_timeout_seconds
     context = ssl.create_default_context()
 
-    try:
-        if settings.smtp_use_ssl:
-            with IPv4SMTP_SSL(settings.smtp_host, settings.smtp_port, timeout=timeout, context=context) as server:
-                if settings.smtp_username:
-                    server.login(settings.smtp_username, settings.smtp_password)
-                server.send_message(message)
-            return
-
-        with IPv4SMTP(settings.smtp_host, settings.smtp_port, timeout=timeout) as server:
-            server.ehlo()
-            if settings.smtp_use_tls:
-                server.starttls(context=context)
-                server.ehlo()
-            if settings.smtp_username:
-                server.login(settings.smtp_username, settings.smtp_password)
+    if provider.use_ssl:
+        with IPv4SMTP_SSL(provider.host, provider.port, timeout=timeout, context=context) as server:
+            if provider.username:
+                server.login(provider.username, provider.password)
             server.send_message(message)
-    except Exception as exc:
-        logger.exception("SMTP 发信失败")
-        raise EmailDeliveryError("验证码邮件发送失败，请稍后重试") from exc
+        return
+
+    with IPv4SMTP(provider.host, provider.port, timeout=timeout) as server:
+        server.ehlo()
+        if provider.use_tls:
+            server.starttls(context=context)
+            server.ehlo()
+        if provider.username:
+            server.login(provider.username, provider.password)
+        server.send_message(message)
 
 
 async def send_login_code_email(to_email: str, code: str) -> None:
-    message = _build_login_code_message(to_email, code)
-    await asyncio.to_thread(_send_message_sync, message)
+    last_error: Exception | None = None
+
+    for provider in settings.smtp_providers:
+        message = _build_login_code_message(provider, to_email, code)
+        try:
+            await asyncio.to_thread(_send_message_sync, provider, message)
+            return
+        except Exception as exc:
+            last_error = exc
+            logger.exception("SMTP 发信失败，provider=%s", provider.name)
+
+    if last_error is not None:
+        raise EmailDeliveryError("验证码邮件发送失败，请稍后重试") from last_error
+
+    raise EmailDeliveryError("SMTP 配置不完整，未找到可用的邮件服务")
