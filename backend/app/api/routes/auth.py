@@ -64,7 +64,11 @@ async def send_login_code(payload: SendCodeRequest, db: AsyncSession = Depends(g
         except EmailDeliveryError as exc:
             await db.execute(delete(EmailLoginCode).where(EmailLoginCode.email == payload.email))
             await db.commit()
-            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+            root_cause = repr(exc.__cause__) if exc.__cause__ is not None else str(exc)
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"{exc} | root cause: {root_cause}",
+            ) from exc
 
     return SendCodeResponse(
         message="验证码已发送，请查收邮箱",
