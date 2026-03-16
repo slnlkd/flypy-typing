@@ -11,7 +11,7 @@ import { batchSyncWrongChars, savePracticeRecord } from '../../api/client';
 export function ResultPanel() {
   const {
     isFinished, mode, correctCount, wrongCount, maxCombo,
-    getSpeed, getAccuracy, getElapsedTime, chars, loadRandomChars, loadRandomPhrases, loadArticle,
+    getSpeed, getAccuracy, getElapsedTime, sessionWrongChars, loadRandomChars, loadRandomPhrases, loadArticle,
   } = useTypingStore();
   const { addRecord, addWrongChar } = useHistoryStore();
   const { soundEnabled } = useSettingsStore();
@@ -27,24 +27,24 @@ export function ResultPanel() {
 
       if (soundEnabled) playFinishSound();
 
+      const newRecord = addRecord({
+        mode,
+        speed,
+        accuracy,
+        totalChars: correctCount + wrongCount,
+        correctChars: correctCount,
+        wrongChars: wrongCount,
+        maxCombo,
+        duration,
+      });
+
+      Object.entries(sessionWrongChars).forEach(([char, item]) => {
+        for (let i = 0; i < item.count; i++) {
+          addWrongChar(char, item.pinyin, item.flypyCode);
+        }
+      });
+
       if (token) {
-        const newRecord = addRecord({
-          mode,
-          speed,
-          accuracy,
-          totalChars: correctCount + wrongCount,
-          correctChars: correctCount,
-          wrongChars: wrongCount,
-          maxCombo,
-          duration,
-        });
-
-        chars.forEach((tc) => {
-          if (tc.status === 'wrong') {
-            addWrongChar(tc.pinyinChar.char, tc.pinyinChar.pinyin, tc.pinyinChar.flypyCode);
-          }
-        });
-
         void savePracticeRecord(token, newRecord).catch(() => undefined);
         const latestWrongChars = Object.values(useHistoryStore.getState().wrongChars);
         void batchSyncWrongChars(token, latestWrongChars).catch(() => undefined);
@@ -53,7 +53,7 @@ export function ResultPanel() {
     if (!isFinished) {
       savedRef.current = false;
     }
-  }, [isFinished, mode, correctCount, wrongCount, maxCombo, chars, getSpeed, getAccuracy, getElapsedTime, addRecord, addWrongChar, soundEnabled, token]);
+  }, [isFinished, mode, correctCount, wrongCount, maxCombo, sessionWrongChars, getSpeed, getAccuracy, getElapsedTime, addRecord, addWrongChar, soundEnabled, token]);
 
   if (!isFinished) return null;
 

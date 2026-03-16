@@ -143,6 +143,7 @@ interface TypingState {
 
   correctCount: number;
   wrongCount: number;
+  sessionWrongChars: Record<string, { pinyin: string; flypyCode: string; count: number }>;
   totalKeystrokes: number;
   combo: number;
   maxCombo: number;
@@ -181,6 +182,7 @@ export const useTypingStore = create<TypingState>((set, get) => ({
   pauseStartTime: null,
   correctCount: 0,
   wrongCount: 0,
+  sessionWrongChars: {},
   totalKeystrokes: 0,
   combo: 0,
   maxCombo: 0,
@@ -202,6 +204,7 @@ export const useTypingStore = create<TypingState>((set, get) => ({
       pauseStartTime: null,
       correctCount: 0,
       wrongCount: 0,
+      sessionWrongChars: {},
       totalKeystrokes: 0,
       combo: 0,
       maxCombo: 0,
@@ -229,6 +232,7 @@ export const useTypingStore = create<TypingState>((set, get) => ({
       pauseStartTime: null,
       correctCount: 0,
       wrongCount: 0,
+      sessionWrongChars: {},
       totalKeystrokes: 0,
       combo: 0,
       maxCombo: 0,
@@ -450,6 +454,14 @@ export const useTypingStore = create<TypingState>((set, get) => ({
         chars: newChars,
         currentInput: newInput,
         wrongCount: state.wrongCount + 1,
+        sessionWrongChars: {
+          ...state.sessionWrongChars,
+          [currentChar.pinyinChar.char]: {
+            pinyin: currentChar.pinyinChar.pinyin,
+            flypyCode: currentChar.pinyinChar.flypyCode,
+            count: (state.sessionWrongChars[currentChar.pinyinChar.char]?.count || 0) + 1,
+          },
+        },
         combo: 0,
       });
 
@@ -493,6 +505,7 @@ export const useTypingStore = create<TypingState>((set, get) => ({
     let idx = state.currentIndex;
     let correct = state.correctCount;
     let wrong = state.wrongCount;
+    let sessionWrongChars = state.sessionWrongChars;
     let combo = state.combo;
     let maxCombo = state.maxCombo;
     let keystrokes = state.totalKeystrokes;
@@ -548,6 +561,15 @@ export const useTypingStore = create<TypingState>((set, get) => ({
         };
         wrong++;
         combo = 0;
+        const existingWrong = sessionWrongChars[currentChar.pinyinChar.char];
+        sessionWrongChars = {
+          ...sessionWrongChars,
+          [currentChar.pinyinChar.char]: {
+            pinyin: currentChar.pinyinChar.pinyin,
+            flypyCode: currentChar.pinyinChar.flypyCode,
+            count: (existingWrong?.count || 0) + 1,
+          },
+        };
         if (settings.soundEnabled) playErrorSound();
       }
 
@@ -563,6 +585,7 @@ export const useTypingStore = create<TypingState>((set, get) => ({
         currentInput: '',
         correctCount: correct,
         wrongCount: wrong,
+        sessionWrongChars,
         totalKeystrokes: keystrokes,
         combo,
         maxCombo,
@@ -575,6 +598,7 @@ export const useTypingStore = create<TypingState>((set, get) => ({
         isFinished: true,
         correctCount: correct,
         wrongCount: wrong,
+        sessionWrongChars,
         totalKeystrokes: keystrokes,
         combo,
         maxCombo,
