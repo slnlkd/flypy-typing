@@ -1,10 +1,13 @@
 import asyncio
+import logging
 import smtplib
 import socket
 import ssl
 from email.message import EmailMessage
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class EmailDeliveryError(Exception):
@@ -84,6 +87,7 @@ def _send_message_sync(message: EmailMessage) -> None:
                 server.login(settings.smtp_username, settings.smtp_password)
             server.send_message(message)
     except Exception as exc:
+        logger.exception("SMTP 发信失败")
         raise EmailDeliveryError("验证码邮件发送失败，请稍后重试") from exc
 
 
