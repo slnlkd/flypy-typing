@@ -1,8 +1,13 @@
+from pathlib import Path
 from dataclasses import dataclass
 from functools import lru_cache
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+BASE_DIR = Path(__file__).resolve().parents[2]
+ENV_FILE = BASE_DIR / ".env"
 
 
 @dataclass(frozen=True)
@@ -18,7 +23,11 @@ class SMTPProviderConfig:
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=str(ENV_FILE),
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
     app_name: str = Field(default="flypy-typing-backend", alias="APP_NAME")
     app_env: str = Field(default="development", alias="APP_ENV")
@@ -63,8 +72,18 @@ class Settings(BaseSettings):
     object_storage_secret_key: str = Field(default="", alias="OBJECT_STORAGE_SECRET_KEY")
 
     openai_api_key: str = Field(default="", alias="OPENAI_API_KEY")
+    openai_base_url: str = Field(default="", alias="OPENAI_BASE_URL")
+    deepseek_api_key: str = Field(default="", alias="DEEPSEEK_API_KEY")
+    deepseek_base_url: str = Field(default="https://api.deepseek.com", alias="DEEPSEEK_BASE_URL")
     embedding_provider: str = Field(default="openai", alias="EMBEDDING_PROVIDER")
+    embedding_api_key: str = Field(default="", alias="EMBEDDING_API_KEY")
+    embedding_base_url: str = Field(default="", alias="EMBEDDING_BASE_URL")
+    embedding_model: str = Field(default="text-embedding-3-small", alias="EMBEDDING_MODEL")
+    embedding_dimensions: int = Field(default=256, alias="EMBEDDING_DIMENSIONS")
     chat_provider: str = Field(default="openai", alias="CHAT_PROVIDER")
+    chat_model: str = Field(default="gpt-4o-mini", alias="CHAT_MODEL")
+    deepseek_chat_model: str = Field(default="deepseek-chat", alias="DEEPSEEK_CHAT_MODEL")
+    chat_temperature: float = Field(default=0.3, alias="CHAT_TEMPERATURE")
 
     @property
     def cors_origins(self) -> list[str]:
@@ -107,6 +126,32 @@ class Settings(BaseSettings):
             )
 
         return providers
+
+    @property
+    def effective_ai_api_key(self) -> str:
+        if self.chat_provider == "deepseek":
+            return self.deepseek_api_key or self.openai_api_key
+        return self.openai_api_key or self.deepseek_api_key
+
+    @property
+    def effective_ai_base_url(self) -> str:
+        if self.chat_provider == "deepseek":
+            return self.deepseek_base_url or self.openai_base_url
+        return self.openai_base_url or self.deepseek_base_url
+
+    @property
+    def effective_chat_model(self) -> str:
+        if self.chat_provider == "deepseek":
+            return self.deepseek_chat_model or self.chat_model
+        return self.chat_model or self.deepseek_chat_model
+
+    @property
+    def effective_embedding_api_key(self) -> str:
+        return self.embedding_api_key or self.openai_api_key
+
+    @property
+    def effective_embedding_base_url(self) -> str:
+        return self.embedding_base_url or self.openai_base_url
 
 
 @lru_cache

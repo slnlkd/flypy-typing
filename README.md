@@ -332,6 +332,7 @@ flypy-typing/
 ## 路线与说明入口
 
 - 正式后端说明：[backend/README.md](./backend/README.md)
+- AI 模块实现讲解：[docs/ai-module-implementation-guide.md](./docs/ai-module-implementation-guide.md)
 - 题库与编码映射：`src/data/flypy.ts`
 - 小鹤双拼官网：[https://flypy.cc/](https://flypy.cc/)
 - Rime 输入法：[https://rime.im/](https://rime.im/)

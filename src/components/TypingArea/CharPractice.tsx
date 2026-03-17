@@ -20,6 +20,13 @@ export function CharPractice() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      const target = e.target;
+      if (
+        target instanceof HTMLElement &&
+        (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
+      ) {
+        return;
+      }
       const key = typeof e.key === 'string' ? e.key : '';
       if (e.ctrlKey || e.metaKey) return;
       if (isPaused) {

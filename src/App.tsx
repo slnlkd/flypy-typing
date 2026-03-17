@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Header } from './components/Layout/Header';
+import { AICoachPanel } from './components/AI/AICoachPanel';
 import { KeyboardMap } from './components/KeyboardMap/KeyboardMap';
 import { CharPractice } from './components/TypingArea/CharPractice';
 import { PhrasePractice } from './components/TypingArea/PhrasePractice';
@@ -24,13 +25,17 @@ import {
   logout,
   saveCloudSettings,
 } from './api/client';
+import type { GeneratedAIContent } from './api/client';
+import { textToPinyinChars } from './utils/pinyin';
 import { setMasterVolume } from './utils/sound';
 
 function App() {
-  const { mode, isFinished } = useTypingStore();
+  const { mode, isFinished, setMode, loadChars, loadArticle } = useTypingStore();
   const [showHistory, setShowHistory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
+  const [showAI, setShowAI] = useState(false);
+  const [openAIAfterAuth, setOpenAIAfterAuth] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const settingsStore = useSettingsStore();
   const settingsSnapshot = useMemo(() => getSettingsSnapshot(settingsStore), [settingsStore]);
@@ -103,6 +108,15 @@ function App() {
     setShowLogoutConfirm(true);
   };
 
+  const handleShowAI = () => {
+    if (!token) {
+      setOpenAIAfterAuth(true);
+      setShowAuth(true);
+      return;
+    }
+    setShowAI(true);
+  };
+
   const handleConfirmLogout = async () => {
     try {
       if (token) {
@@ -115,6 +129,18 @@ function App() {
       replaceWrongChars([]);
       window.location.reload();
     }
+  };
+
+  const handleApplyAIContent = (content: GeneratedAIContent) => {
+    if (content.type === 'article') {
+      setMode('article');
+      loadArticle(content.content);
+      return;
+    }
+
+    const chars = textToPinyinChars(content.content).filter((item) => item.isChineseChar);
+    setMode(content.type);
+    loadChars(chars);
   };
 
   return (
@@ -133,6 +159,7 @@ function App() {
           onShowHistory={() => setShowHistory(true)}
           onShowSettings={() => setShowSettings(true)}
           onShowAuth={() => { void handleAuthAction(); }}
+          onShowAI={handleShowAI}
         />
 
         <main className="flex-1 flex flex-col items-center gap-3 px-6 py-3 min-h-0 overflow-hidden">
@@ -175,7 +202,21 @@ function App() {
       {isFinished && <ResultPanel />}
       {showHistory && <HistoryPanel onClose={() => setShowHistory(false)} />}
       {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
-      {showAuth && <AuthPanel onClose={() => setShowAuth(false)} />}
+      {showAuth && (
+        <AuthPanel
+          onClose={() => {
+            setShowAuth(false);
+            setOpenAIAfterAuth(false);
+          }}
+          onSuccess={() => {
+            if (openAIAfterAuth) {
+              setShowAI(true);
+              setOpenAIAfterAuth(false);
+            }
+          }}
+        />
+      )}
+      {showAI && <AICoachPanel onClose={() => setShowAI(false)} onApplyContent={handleApplyAIContent} />}
       <ConfirmDialog
         open={showLogoutConfirm}
         title="退出登录"

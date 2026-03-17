@@ -4,7 +4,7 @@ import { useAuthStore } from '../../stores/authStore';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export function AuthPanel({ onClose }: { onClose: () => void }) {
+export function AuthPanel({ onClose, onSuccess }: { onClose: () => void; onSuccess?: () => void }) {
   const demoFallbackEnabled = import.meta.env.VITE_ENABLE_DEMO_FALLBACK === 'true';
   const { setSession } = useAuthStore();
   const emailInputRef = useRef<HTMLInputElement>(null);
@@ -102,6 +102,7 @@ export function AuthPanel({ onClose }: { onClose: () => void }) {
       window.setTimeout(() => {
         setIsSubmitting(false);
         setSession(result.token, result.user);
+        onSuccess?.();
         onClose();
       }, 600);
     } catch (error) {

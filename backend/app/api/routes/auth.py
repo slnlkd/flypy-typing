@@ -39,6 +39,7 @@ class SessionUser(BaseModel):
     display_name: str
     created_at: str
     last_login_at: str
+    is_admin: bool
 
 
 class LoginResponse(BaseModel):
@@ -62,6 +63,13 @@ async def send_login_code(payload: SendCodeRequest, db: AsyncSession = Depends(g
         try:
             await send_login_code_email(payload.email, code)
         except EmailDeliveryError as exc:
+            if settings.app_env != "production":
+                return SendCodeResponse(
+                    message=f"SMTP 发送失败，已切换为开发调试验证码: {exc}",
+                    demoCode=code,
+                    expiresIn=600,
+                )
+
             await db.execute(delete(EmailLoginCode).where(EmailLoginCode.email == payload.email))
             await db.commit()
             root_cause = repr(exc.__cause__) if exc.__cause__ is not None else str(exc)
@@ -116,6 +124,7 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db_session
             display_name=user.display_name,
             created_at=user.created_at.isoformat(),
             last_login_at=(user.last_login_at or datetime.now(UTC)).isoformat(),
+            is_admin=user.is_admin,
         ),
     )
 

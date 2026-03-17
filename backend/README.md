@@ -42,6 +42,51 @@ alembic upgrade head
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
+## DeepSeek 配置
+
+当前后端按 OpenAI 兼容接口接模型，已经兼容 DeepSeek。要启用 DeepSeek，在 `backend/.env` 里增加：
+
+```env
+CHAT_PROVIDER=deepseek
+DEEPSEEK_API_KEY=your-deepseek-api-key
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+DEEPSEEK_CHAT_MODEL=deepseek-chat
+CHAT_TEMPERATURE=0.3
+```
+
+如果你后面想切换推理模型，也可以把 `DEEPSEEK_CHAT_MODEL` 改成：
+
+```env
+DEEPSEEK_CHAT_MODEL=deepseek-reasoner
+```
+
+说明：
+
+- `deepseek-chat` 适合大多数对话、教练分析、题目生成场景
+- `deepseek-reasoner` 更偏推理，成本和响应延迟通常更高
+- `DEEPSEEK_BASE_URL` 默认就是 `https://api.deepseek.com`
+- 当前实现会优先读取 `CHAT_PROVIDER=deepseek` 下的 `DEEPSEEK_*` 配置
+
+## RAG 与向量检索
+
+当前后端已支持基于 `pgvector` 的知识库入库与检索。
+
+可选的 embedding 配置如下：
+
+```env
+EMBEDDING_PROVIDER=openai
+EMBEDDING_API_KEY=
+EMBEDDING_BASE_URL=
+EMBEDDING_MODEL=text-embedding-3-small
+EMBEDDING_DIMENSIONS=256
+```
+
+说明：
+
+- 如果配置了 embedding 接口，会优先使用真实 embedding
+- 如果未配置，会自动退回本地哈希向量，仍可完成入库和检索，但语义效果较弱
+- 默认知识库会在应用启动时自动写入数据库，用于 AI 教练和问答
+
 ## SMTP 验证码
 
 启用真实邮箱验证码发送时，先在 `backend/.env` 配置：

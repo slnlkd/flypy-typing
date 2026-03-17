@@ -10,10 +10,12 @@ export function Header({
   onShowHistory,
   onShowSettings,
   onShowAuth,
+  onShowAI,
 }: {
   onShowHistory: () => void;
   onShowSettings: () => void;
   onShowAuth: () => void;
+  onShowAI: () => void;
 }) {
   const { mode, setMode, loadRandomChars, loadRandomPhrases, isStarted, isFinished } = useTypingStore();
   const { darkMode, toggleDarkMode } = useSettingsStore();
@@ -60,6 +62,20 @@ export function Header({
       </div>
 
       <div className="flex items-center gap-2">
+        <button
+          onClick={onShowAI}
+          className="h-8 rounded-lg px-3 text-xs font-semibold transition-colors cursor-pointer inline-flex items-center gap-2"
+          style={{
+            backgroundColor: 'var(--accent-light)',
+            border: '1px solid rgba(0,0,0,0.04)',
+            color: 'var(--accent)',
+          }}
+          title="打开 AI 教练"
+          aria-label="打开 AI 教练"
+        >
+          <SparkIcon />
+          <span>AI 教练</span>
+        </button>
         <button
           onClick={onShowAuth}
           className="h-8 rounded-lg px-3 text-xs font-semibold transition-colors cursor-pointer inline-flex items-center gap-2"
@@ -123,6 +139,15 @@ function IconButton({ icon, onClick, title }: { icon: ReactNode; onClick: () => 
     >
       {icon}
     </button>
+  );
+}
+
+function SparkIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m12 3 1.9 4.8L19 10l-5.1 2.2L12 17l-1.9-4.8L5 10l5.1-2.2L12 3z" />
+      <path d="M5 19l.9 2 .9-2 2-.9-2-.9-.9-2-.9 2-2 .9 2 .9z" />
+    </svg>
   );
 }
 

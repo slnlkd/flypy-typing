@@ -18,6 +18,7 @@ class MeResponse(BaseModel):
     displayName: str
     createdAt: str
     lastLoginAt: str
+    isAdmin: bool
 
 
 class UserSettingsResponse(BaseModel):
@@ -79,6 +80,7 @@ async def read_me(current_user: User = Depends(get_current_user)) -> MeEnvelope:
             displayName=current_user.display_name,
             createdAt=current_user.created_at.isoformat(),
             lastLoginAt=(current_user.last_login_at or current_user.created_at).isoformat(),
+            isAdmin=current_user.is_admin,
         )
     )
 
